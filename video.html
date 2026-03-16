@@ -1,0 +1,78 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CUSCUS视频看板</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <main class="app">
+    <nav class="top-nav">
+      <div class="brand">CUSCUS工作台</div>
+      <div class="nav-links">
+        <a href="index.html">导航页</a>
+        <a href="gmv.html">GMV MAX分析</a>
+        <a href="video.html">视频看板</a>
+      </div>
+    </nav>
+
+    <header class="hero" id="video">
+      <div>
+        <p class="eyebrow">视频互动 • 链接与缩略图预览</p>
+        <h1>CUSCUS视频看板</h1>
+        <p class="sub">上传 Video List 表格，自动解析视频名称、链接、达人账号与缩略图预览。</p>
+      </div>
+      <div class="upload-card">
+        <div class="upload-title">导入视频列表</div>
+        <label class="upload-btn">
+          选择 Excel 文件
+          <input id="videoFileInput" type="file" accept=".xlsx,.xls" />
+        </label>
+        <div class="upload-hint">支持 Video List 导出表</div>
+        <div id="videoFileMeta" class="upload-meta">尚未导入文件</div>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>概览</h2>
+        <div id="videoDataStatus" class="pill">等待导入</div>
+      </div>
+      <div class="kpi-grid" id="videoKpiGrid"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>视频列表</h2>
+        <div class="section-actions">
+          <input id="videoSearchInput" class="search" placeholder="搜索视频名 / 账号" />
+          <select id="videoSortSelect" class="select">
+            <option value="date_desc">发布时间 从新到旧</option>
+            <option value="gmv_desc">GMV 从高到低</option>
+            <option value="likes_desc">点赞 从高到低</option>
+            <option value="comments_desc">评论 从高到低</option>
+          </select>
+        </div>
+      </div>
+      <div id="videoGrid" class="video-grid"></div>
+      <div class="center">
+        <button id="loadMoreVideos" class="ghost">加载更多</button>
+      </div>
+    </section>
+  </main>
+
+  <button id="backToTop" class="back-to-top" aria-label="回到顶部">↑</button>
+  <footer class="footer">CUSCUS视频看板</footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

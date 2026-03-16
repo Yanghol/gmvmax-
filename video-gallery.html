@@ -1,0 +1,65 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>重生之羊村视频互动看板</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="video-gallery.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <main class="app">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">视频互动 • 链接与缩略图预览</p>
+        <h1>重生之羊村视频互动看板</h1>
+        <p class="sub">上传视频列表表格，自动解析视频名称、链接、发布时间、达人账号与缩略图预览，便于品牌团队快速互动与复盘。</p>
+      </div>
+      <div class="upload-card">
+        <div class="upload-title">导入视频列表</div>
+        <label class="upload-btn">
+          选择 Excel 文件
+          <input id="fileInput" type="file" accept=".xlsx,.xls" />
+        </label>
+        <div class="upload-hint">支持 Video List 导出表</div>
+        <div id="fileMeta" class="upload-meta">尚未导入文件</div>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>概览</h2>
+        <div id="dataStatus" class="pill">等待导入</div>
+      </div>
+      <div class="kpi-grid" id="kpiGrid"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>视频列表</h2>
+        <div class="section-actions">
+          <input id="searchInput" class="search" placeholder="搜索视频名 / 账号" />
+          <select id="sortSelect" class="select">
+            <option value="date_desc">发布时间 从新到旧</option>
+            <option value="gmv_desc">GMV 从高到低</option>
+            <option value="likes_desc">点赞 从高到低</option>
+            <option value="comments_desc">评论 从高到低</option>
+          </select>
+        </div>
+      </div>
+      <div id="videoGrid" class="video-grid"></div>
+    </section>
+  </main>
+
+  <footer class="footer">重生之羊村视频互动看板 • 内部使用版</footer>
+
+  <script src="video-gallery.js"></script>
+</body>
+</html>

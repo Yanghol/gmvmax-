@@ -17,6 +17,14 @@ const ctrThresholdInput = document.getElementById("ctrThreshold");
 const cvrThresholdInput = document.getElementById("cvrThreshold");
 const applyThresholdBtn = document.getElementById("applyThreshold");
 const alertSummary = document.getElementById("alertSummary");
+const videoFileInput = document.getElementById("videoFileInput");
+const videoFileMeta = document.getElementById("videoFileMeta");
+const videoDataStatus = document.getElementById("videoDataStatus");
+const videoKpiGrid = document.getElementById("videoKpiGrid");
+const videoGrid = document.getElementById("videoGrid");
+const videoSearchInput = document.getElementById("videoSearchInput");
+const videoSortSelect = document.getElementById("videoSortSelect");
+const loadMoreVideosBtn = document.getElementById("loadMoreVideos");
 
 let rows = [];
 let filteredRows = [];
@@ -653,45 +661,274 @@ function renderAlerts(data) {
   recommendationsEl.insertAdjacentHTML("afterbegin", alertHtml);
 }
 
-fileInput.addEventListener("change", event => {
-  const file = event.target.files[0];
-  if (!file) return;
-  fileMeta.textContent = `已选择：${file.name}`;
+if (fileInput) {
+  fileInput.addEventListener("change", event => {
+    const file = event.target.files[0];
+    if (!file) return;
+    fileMeta.textContent = `已选择：${file.name}`;
 
-  const reader = new FileReader();
-  reader.onload = e => {
-    rows = parseSheet(e.target.result);
-    currentSummary = updateKpis(rows);
-    updateInFlight(rows);
-    renderCharts(currentSummary);
+    const reader = new FileReader();
+    reader.onload = e => {
+      rows = parseSheet(e.target.result);
+      currentSummary = updateKpis(rows);
+      updateInFlight(rows);
+      renderCharts(currentSummary);
 
+      const trend = buildTrend(rows, trendGranularity.value);
+      renderTrendChart(trend);
+
+      renderRecommendations(rows);
+      renderAggregateTable(accountTable, buildAggregate(rows, "TikTok 账号"));
+      renderAggregateTable(typeTable, buildAggregate(rows, "创意作品类型"));
+      renderAggregateTable(sourceTable, buildAggregate(rows, "视频来源"));
+
+      applyFilterAndSort();
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+if (trendGranularity) {
+  trendGranularity.addEventListener("change", () => {
+    if (!rows.length) return;
     const trend = buildTrend(rows, trendGranularity.value);
     renderTrendChart(trend);
+  });
+}
 
+if (applyThresholdBtn) {
+  applyThresholdBtn.addEventListener("click", () => {
+    if (!rows.length) return;
     renderRecommendations(rows);
-    renderAggregateTable(accountTable, buildAggregate(rows, "TikTok 账号"));
-    renderAggregateTable(typeTable, buildAggregate(rows, "创意作品类型"));
-    renderAggregateTable(sourceTable, buildAggregate(rows, "视频来源"));
+    renderAlerts(rows);
+  });
+}
 
-    applyFilterAndSort();
+if (searchInput) searchInput.addEventListener("input", applyFilterAndSort);
+if (sortSelect) sortSelect.addEventListener("change", applyFilterAndSort);
+if (downloadCsvBtn) setupDownload();
+
+if (recommendationsEl) renderRecommendations([]);
+
+
+// CUSCUS视频看板
+const videoFields = {
+  name: "Video name",
+  link: "Video link",
+  date: "Video post date",
+  creator: "Creator username",
+  gmv: "GMV",
+  impressions: "Shoppable video impressions",
+  likes: "Shoppable video likes",
+  comments: "Shoppable video comments"
+};
+
+let videoRows = [];
+let videoFiltered = [];
+let videoPage = 1;
+const videoPageSize = 20;
+
+function parseVideoSheet(data) {
+  const workbook = XLSX.read(data, { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+  const header = raw[0];
+  const dataRows = raw.slice(1).filter(row => row.some(cell => cell !== ""));
+
+  return dataRows.map(row => {
+    const obj = {};
+    header.forEach((key, idx) => {
+      obj[key] = row[idx] ?? "";
+    });
+    obj.__name = obj[videoFields.name] || "";
+    obj.__link = obj[videoFields.link] || "";
+    obj.__date = parseDate(obj[videoFields.date]);
+    obj.__creator = obj[videoFields.creator] || "";
+    obj.__gmv = toNumber(obj[videoFields.gmv]);
+    obj.__impressions = toNumber(obj[videoFields.impressions]);
+    obj.__likes = toNumber(obj[videoFields.likes]);
+    obj.__comments = toNumber(obj[videoFields.comments]);
+    return obj;
+  });
+}
+
+function updateVideoKpis(data) {
+  const totalGmv = data.reduce((sum, r) => sum + r.__gmv, 0);
+  const totalImpressions = data.reduce((sum, r) => sum + r.__impressions, 0);
+  const totalLikes = data.reduce((sum, r) => sum + r.__likes, 0);
+  const totalComments = data.reduce((sum, r) => sum + r.__comments, 0);
+
+  const kpis = [
+    { title: "视频数量", value: fmtNumber(data.length), note: "导入的有效视频数" },
+    { title: "总 GMV", value: fmtCurrency(totalGmv), note: "视频列表 GMV 汇总" },
+    { title: "总曝光", value: fmtNumber(totalImpressions), note: "Shoppable impressions" },
+    { title: "总点赞", value: fmtNumber(totalLikes), note: "Shoppable likes" },
+    { title: "总评论", value: fmtNumber(totalComments), note: "Shoppable comments" }
+  ];
+
+  videoKpiGrid.innerHTML = kpis.map(kpi => `
+    <div class="kpi-card">
+      <div class="kpi-title">${kpi.title}</div>
+      <div class="kpi-value">${kpi.value}</div>
+      <div class="kpi-note">${kpi.note}</div>
+    </div>
+  `).join("");
+
+  videoDataStatus.textContent = `已导入 ${data.length} 条视频`;
+  videoDataStatus.style.color = "#5bd0ff";
+}
+
+async function fetchVideoThumbnail(url) {
+  if (!url) return null;
+  try {
+    const res = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.thumbnail_url || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function renderVideoCards(data) {
+  const visible = data.slice(0, videoPage * videoPageSize);
+  videoGrid.innerHTML = visible.map((row, idx) => `
+    <article class="video-card" data-index="${idx}">
+      <div class="thumb" data-url="${row.__link}">
+        <span>预览加载中</span>
+      </div>
+      <div class="video-body">
+        <div class="video-title">${row.__name || "未命名视频"}</div>
+        <div class="video-meta">@${row.__creator || "-"} • ${row.__date ? row.__date.toISOString().slice(0, 10) : "-"}</div>
+        <div class="stat-row">
+          <div class="stat"><span>GMV</span><strong>${fmtCurrency(row.__gmv)}</strong></div>
+          <div class="stat"><span>曝光</span><strong>${fmtNumber(row.__impressions)}</strong></div>
+          <div class="stat"><span>点赞</span><strong>${fmtNumber(row.__likes)}</strong></div>
+          <div class="stat"><span>评论</span><strong>${fmtNumber(row.__comments)}</strong></div>
+        </div>
+        <div class="video-actions">
+          <a href="${row.__link}" target="_blank" rel="noopener">打开视频</a>
+          <button class="copy-btn" data-link="${row.__link}">复制链接</button>
+        </div>
+      </div>
+    </article>
+  `).join("");
+
+  setupVideoThumbObserver();
+
+  if (visible.length >= data.length) {
+    loadMoreVideosBtn.style.display = "none";
+  } else {
+    loadMoreVideosBtn.style.display = "inline-flex";
+  }
+}
+
+function setupVideoThumbObserver() {
+  const thumbs = document.querySelectorAll("#videoGrid .thumb");
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(async entry => {
+      if (!entry.isIntersecting) return;
+      const container = entry.target;
+      observer.unobserve(container);
+      const url = container.getAttribute("data-url");
+      const thumb = await fetchVideoThumbnail(url);
+      if (!thumb) {
+        container.innerHTML = "<span>暂无缩略图</span>";
+        return;
+      }
+      container.innerHTML = `<img src="${thumb}" alt="视频缩略图" />`;
+    });
+  }, { rootMargin: "200px" });
+
+  thumbs.forEach(thumb => observer.observe(thumb));
+}
+
+function applyVideoFilterAndSort(resetPage = true) {
+  const keyword = videoSearchInput.value.trim();
+  videoFiltered = videoRows.filter(r => {
+    if (!keyword) return true;
+    return (
+      String(r.__name || "").includes(keyword) ||
+      String(r.__creator || "").includes(keyword)
+    );
+  });
+
+  const sortValue = videoSortSelect.value;
+  const sortMap = {
+    date_desc: (a, b) => (b.__date?.getTime() || 0) - (a.__date?.getTime() || 0),
+    gmv_desc: (a, b) => b.__gmv - a.__gmv,
+    likes_desc: (a, b) => b.__likes - a.__likes,
+    comments_desc: (a, b) => b.__comments - a.__comments
   };
-  reader.readAsArrayBuffer(file);
-});
+  videoFiltered.sort(sortMap[sortValue]);
 
-trendGranularity.addEventListener("change", () => {
-  if (!rows.length) return;
-  const trend = buildTrend(rows, trendGranularity.value);
-  renderTrendChart(trend);
-});
+  if (resetPage) videoPage = 1;
+  renderVideoCards(videoFiltered);
+}
 
-applyThresholdBtn.addEventListener("click", () => {
-  if (!rows.length) return;
-  renderRecommendations(rows);
-  renderAlerts(rows);
-});
+if (videoFileInput) {
+  videoFileInput.addEventListener("change", event => {
+    const file = event.target.files[0];
+    if (!file) return;
+    videoFileMeta.textContent = `已选择：${file.name}`;
 
-searchInput.addEventListener("input", applyFilterAndSort);
-sortSelect.addEventListener("change", applyFilterAndSort);
-setupDownload();
+    const reader = new FileReader();
+    reader.onload = e => {
+      videoRows = parseVideoSheet(e.target.result);
+      updateVideoKpis(videoRows);
+      applyVideoFilterAndSort(true);
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
 
-renderRecommendations([]);
+if (videoSearchInput) {
+  videoSearchInput.addEventListener("input", () => applyVideoFilterAndSort(true));
+}
+
+if (videoSortSelect) {
+  videoSortSelect.addEventListener("change", () => applyVideoFilterAndSort(true));
+}
+
+if (loadMoreVideosBtn) {
+  loadMoreVideosBtn.addEventListener("click", () => {
+    if (!videoFiltered.length) return;
+    videoPage += 1;
+    renderVideoCards(videoFiltered);
+  });
+}
+
+if (videoGrid) {
+  videoGrid.addEventListener("click", async event => {
+    const btn = event.target.closest(".copy-btn");
+    if (!btn) return;
+    const link = btn.getAttribute("data-link");
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      btn.textContent = "已复制";
+      setTimeout(() => {
+        btn.textContent = "复制链接";
+      }, 1200);
+    } catch (err) {
+      btn.textContent = "复制失败";
+      setTimeout(() => {
+        btn.textContent = "复制链接";
+      }, 1200);
+    }
+  });
+}
+
+
+const backToTopBtn = document.getElementById("backToTop");
+if (backToTopBtn) {
+  const toggleBackToTop = () => {
+    if (window.scrollY > 300) backToTopBtn.classList.add("show");
+    else backToTopBtn.classList.remove("show");
+  };
+  window.addEventListener("scroll", toggleBackToTop);
+  toggleBackToTop();
+  backToTopBtn.addEventListener("click", () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+}
