@@ -411,18 +411,15 @@ label {
   font-size: 0.85rem;
 }
 
-.video-hero {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 16px;
-  align-items: center;
-  margin-bottom: 16px;
-}
 
 .center {
   display: flex;
   justify-content: center;
   margin-top: 16px;
+}
+
+.video-load-sentinel {
+  height: 1px;
 }
 
 .video-grid {
@@ -516,9 +513,6 @@ label {
     flex-direction: column;
     gap: 12px;
     align-items: flex-start;
-  }
-  .video-hero {
-    grid-template-columns: 1fr;
   }
 }
 

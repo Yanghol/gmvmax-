@@ -25,6 +25,8 @@ const videoGrid = document.getElementById("videoGrid");
 const videoSearchInput = document.getElementById("videoSearchInput");
 const videoSortSelect = document.getElementById("videoSortSelect");
 const loadMoreVideosBtn = document.getElementById("loadMoreVideos");
+const videoPageSizeSelect = document.getElementById("videoPageSizeSelect");
+const videoLoadSentinel = document.getElementById("videoLoadSentinel");
 
 let rows = [];
 let filteredRows = [];
@@ -726,7 +728,9 @@ const videoFields = {
 let videoRows = [];
 let videoFiltered = [];
 let videoPage = 1;
-const videoPageSize = 20;
+let videoPageSize = Number(videoPageSizeSelect?.value || 20);
+const videoThumbCache = new Map();
+const DEFAULT_THUMB_TEXT = "暂无缩略图";
 
 function parseVideoSheet(data) {
   const workbook = XLSX.read(data, { type: "array" });
@@ -778,16 +782,27 @@ function updateVideoKpis(data) {
   videoDataStatus.style.color = "#5bd0ff";
 }
 
-async function fetchVideoThumbnail(url) {
+async function fetchVideoThumbnail(url, retries = 1) {
   if (!url) return null;
-  try {
-    const res = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.thumbnail_url || null;
-  } catch (err) {
-    return null;
+  if (videoThumbCache.has(url)) return videoThumbCache.get(url);
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    try {
+      const res = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
+      if (!res.ok) continue;
+      const data = await res.json();
+      const thumbnail = data.thumbnail_url || null;
+      videoThumbCache.set(url, thumbnail);
+      return thumbnail;
+    } catch (err) {
+      if (attempt < retries) {
+        await new Promise(resolve => setTimeout(resolve, 250 * (attempt + 1)));
+      }
+    }
   }
+
+  videoThumbCache.set(url, null);
+  return null;
 }
 
 function renderVideoCards(data) {
@@ -833,7 +848,7 @@ function setupVideoThumbObserver() {
       const url = container.getAttribute("data-url");
       const thumb = await fetchVideoThumbnail(url);
       if (!thumb) {
-        container.innerHTML = "<span>暂无缩略图</span>";
+        container.innerHTML = `<span>${DEFAULT_THUMB_TEXT}</span>`;
         return;
       }
       container.innerHTML = `<img src="${thumb}" alt="视频缩略图" />`;
@@ -844,13 +859,12 @@ function setupVideoThumbObserver() {
 }
 
 function applyVideoFilterAndSort(resetPage = true) {
-  const keyword = videoSearchInput.value.trim();
+  const normalizedKeyword = String(videoSearchInput?.value || "").trim().toLowerCase();
+  const keywordParts = normalizedKeyword ? normalizedKeyword.split(/\s+/).filter(Boolean) : [];
   videoFiltered = videoRows.filter(r => {
-    if (!keyword) return true;
-    return (
-      String(r.__name || "").includes(keyword) ||
-      String(r.__creator || "").includes(keyword)
-    );
+    if (!keywordParts.length) return true;
+    const haystack = `${String(r.__name || "")} ${String(r.__creator || "")}`.toLowerCase();
+    return keywordParts.every(part => haystack.includes(part));
   });
 
   const sortValue = videoSortSelect.value;
@@ -890,12 +904,33 @@ if (videoSortSelect) {
   videoSortSelect.addEventListener("change", () => applyVideoFilterAndSort(true));
 }
 
+if (videoPageSizeSelect) {
+  videoPageSizeSelect.addEventListener("change", () => {
+    videoPageSize = Number(videoPageSizeSelect.value || 20);
+    applyVideoFilterAndSort(true);
+  });
+}
+
 if (loadMoreVideosBtn) {
   loadMoreVideosBtn.addEventListener("click", () => {
     if (!videoFiltered.length) return;
     videoPage += 1;
     renderVideoCards(videoFiltered);
   });
+}
+
+if (videoLoadSentinel && "IntersectionObserver" in window) {
+  const loadObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      if (!videoFiltered.length) return;
+      const currentlyVisible = videoPage * videoPageSize;
+      if (currentlyVisible >= videoFiltered.length) return;
+      videoPage += 1;
+      renderVideoCards(videoFiltered);
+    });
+  }, { rootMargin: "160px" });
+  loadObserver.observe(videoLoadSentinel);
 }
 
 if (videoGrid) {
