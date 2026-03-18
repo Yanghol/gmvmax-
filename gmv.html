@@ -18,7 +18,7 @@
 
   <main class="app">
     <nav class="top-nav">
-      <div class="brand">CUSCUS工作台</div>
+      <div class="brand">CusCus工作台</div>
       <div class="nav-links">
         <a href="index.html">导航页</a>
         <a href="gmv.html">GMV MAX分析</a>
@@ -49,6 +49,15 @@
         <div id="dataStatus" class="pill">等待导入</div>
       </div>
       <div class="kpi-grid" id="kpiGrid"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2>近七天新增GMV视频</h2>
+        <div id="recentGmvMeta" class="pill">等待导入</div>
+      </div>
+      <div id="recentGmvGrid" class="video-grid"></div>
+      <div id="recentGmvPagination" class="pagination"></div>
     </section>
 
     <section class="section">
@@ -158,12 +167,8 @@
           </select>
         </div>
       </div>
-      <div class="table-wrap">
-        <table class="data-table" id="dataTable">
-          <thead></thead>
-          <tbody></tbody>
-        </table>
-      </div>
+      <div id="gmvVideoGrid" class="video-grid"></div>
+      <div id="gmvPagination" class="pagination"></div>
     </section>
 
     <section class="section help">
@@ -178,3 +183,4 @@
   <script src="app.js"></script>
 </body>
 </html>
+

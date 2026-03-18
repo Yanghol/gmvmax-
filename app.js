@@ -4,7 +4,8 @@ const kpiGrid = document.getElementById("kpiGrid");
 const inFlightGrid = document.getElementById("inFlightGrid");
 const dataStatus = document.getElementById("dataStatus");
 const recommendationsEl = document.getElementById("recommendations");
-const dataTable = document.getElementById("dataTable");
+const gmvVideoGrid = document.getElementById("gmvVideoGrid");
+const gmvPagination = document.getElementById("gmvPagination");
 const searchInput = document.getElementById("searchInput");
 const sortSelect = document.getElementById("sortSelect");
 const downloadCsvBtn = document.getElementById("downloadCsv");
@@ -17,6 +18,9 @@ const ctrThresholdInput = document.getElementById("ctrThreshold");
 const cvrThresholdInput = document.getElementById("cvrThreshold");
 const applyThresholdBtn = document.getElementById("applyThreshold");
 const alertSummary = document.getElementById("alertSummary");
+const recentGmvGrid = document.getElementById("recentGmvGrid");
+const recentGmvPagination = document.getElementById("recentGmvPagination");
+const recentGmvMeta = document.getElementById("recentGmvMeta");
 const videoFileInput = document.getElementById("videoFileInput");
 const videoFileMeta = document.getElementById("videoFileMeta");
 const videoDataStatus = document.getElementById("videoDataStatus");
@@ -24,10 +28,31 @@ const videoKpiGrid = document.getElementById("videoKpiGrid");
 const videoGrid = document.getElementById("videoGrid");
 const videoSearchInput = document.getElementById("videoSearchInput");
 const videoSortSelect = document.getElementById("videoSortSelect");
-const loadMoreVideosBtn = document.getElementById("loadMoreVideos");
+const videoPageSizeSelect = document.getElementById("videoPageSize");
+const videoPagination = document.getElementById("videoPagination");
+
+function showLibWarning(message) {
+  const banner = document.createElement("div");
+  banner.className = "lib-warning";
+  banner.textContent = message;
+  document.body.prepend(banner);
+}
+
+if (typeof XLSX === "undefined") {
+  showLibWarning("未加载表格解析库，请检查网络或稍后重试。");
+}
+
+if (document.getElementById("trendChart") && typeof Chart === "undefined") {
+  showLibWarning("图表库加载失败，趋势图暂不可用。");
+}
 
 let rows = [];
 let filteredRows = [];
+let gmvPage = 1;
+const gmvPageSize = 8;
+let recentGmvPage = 1;
+const recentGmvPageSize = 8;
+let recentGmvRows = [];
 let charts = {};
 let currentSummary = null;
 
@@ -156,6 +181,15 @@ function parseDate(value) {
   return null;
 }
 
+function buildTiktokUrl(row) {
+  const id = row["视频 ID"];
+  let account = row["TikTok 账号"] || "";
+  if (!id || !account) return "";
+  account = String(account).replace(/^@/, "").trim();
+  if (!account) return "";
+  return `https://www.tiktok.com/@${account}/video/${id}`;
+}
+
 function formatDay(date) {
   return date.toISOString().slice(0, 10);
 }
@@ -212,6 +246,7 @@ function updateKpis(data) {
   const kpis = [
     { title: "总成本", value: fmtCurrency(cost), note: "GMV MAX 投放成本总和" },
     { title: "总收入", value: fmtCurrency(revenue), note: "GMV MAX 归因收入" },
+    { title: "广告曝光度", value: fmtNumber(impressions), note: "广告曝光汇总" },
     { title: "整体 ROI", value: roi.toFixed(2), note: "总收入 ÷ 总成本" },
     { title: "总订单数", value: fmtNumber(orders), note: "SKU 订单汇总" },
     { title: "平均下单成本", value: fmtCurrency(cpa), note: "成本 ÷ 订单" },
@@ -558,34 +593,194 @@ function renderRecommendations(data) {
   `).join("");
 }
 
-function renderTable(data) {
-  const thead = dataTable.querySelector("thead");
-  const tbody = dataTable.querySelector("tbody");
+function renderGmvPagination(totalCount) {
+  if (!gmvPagination) return;
+  const totalPages = Math.max(1, Math.ceil(totalCount / gmvPageSize));
+  const current = Math.min(gmvPage, totalPages);
+  const pages = [];
+  const windowSize = 5;
+  pages.push(1);
+  let start = Math.max(2, current - Math.floor(windowSize / 2));
+  let end = Math.min(totalPages - 1, start + windowSize - 1);
+  start = Math.max(2, end - windowSize + 1);
+  if (start > 2) pages.push("...");
+  for (let i = start; i <= end; i += 1) pages.push(i);
+  if (end < totalPages - 1) pages.push("...");
+  if (totalPages > 1) pages.push(totalPages);
 
-  thead.innerHTML = `<tr>${tableColumns.map(col => `<th>${col}</th>`).join("")}</tr>`;
-
-  tbody.innerHTML = data.map(row => {
-    const cells = tableColumns.map(col => {
-      let value = row[col] ?? "";
-      if (percentFields.includes(col)) value = fmtPct(value || 0);
-      else if (["成本", "总收入", "平均下单成本"].includes(col)) value = fmtCurrency(value || 0);
-      else if (col === "ROI") value = (value || 0).toFixed(2);
-      else if (typeof value === "number") value = fmtNumber(value);
-      return `<td>${value}</td>`;
-    }).join("");
-    return `<tr>${cells}</tr>`;
+  const pageButtons = pages.map(p => {
+    if (p === "...") return `<span class="ellipsis">…</span>`;
+    return `<button class="page-btn ${p === current ? "active" : ""}" data-page="${p}">${p}</button>`;
   }).join("");
+
+  gmvPagination.innerHTML = `
+    <button class="ghost" data-page="prev" ${current === 1 ? "disabled" : ""}>上一页</button>
+    ${pageButtons}
+    <button class="ghost" data-page="next" ${current === totalPages ? "disabled" : ""}>下一页</button>
+    <span class="page-meta">共 ${totalPages} 页</span>
+  `;
+}
+
+function renderRecentGmvPagination(totalCount) {
+  if (!recentGmvPagination) return;
+  const totalPages = Math.max(1, Math.ceil(totalCount / recentGmvPageSize));
+  const current = Math.min(recentGmvPage, totalPages);
+  const pages = [];
+  const windowSize = 5;
+  pages.push(1);
+  let start = Math.max(2, current - Math.floor(windowSize / 2));
+  let end = Math.min(totalPages - 1, start + windowSize - 1);
+  start = Math.max(2, end - windowSize + 1);
+  if (start > 2) pages.push("...");
+  for (let i = start; i <= end; i += 1) pages.push(i);
+  if (end < totalPages - 1) pages.push("...");
+  if (totalPages > 1) pages.push(totalPages);
+
+  const pageButtons = pages.map(p => {
+    if (p === "...") return `<span class="ellipsis">…</span>`;
+    return `<button class="page-btn ${p === current ? "active" : ""}" data-page="${p}">${p}</button>`;
+  }).join("");
+
+  recentGmvPagination.innerHTML = `
+    <button class="ghost" data-page="prev" ${current === 1 ? "disabled" : ""}>上一页</button>
+    ${pageButtons}
+    <button class="ghost" data-page="next" ${current === totalPages ? "disabled" : ""}>下一页</button>
+    <span class="page-meta">共 ${totalPages} 页</span>
+  `;
+}
+
+function renderGmvVideoCards(data) {
+  if (!gmvVideoGrid) return;
+  const start = (gmvPage - 1) * gmvPageSize;
+  const end = start + gmvPageSize;
+  const visible = data.slice(start, end);
+
+  gmvVideoGrid.innerHTML = visible.map(row => {
+    const url = buildTiktokUrl(row);
+    const title = row["视频标题"] || "未命名视频";
+    const account = row["TikTok 账号"] || "-";
+    const roi = (row["ROI"] || 0).toFixed(2);
+    return `
+      <article class="video-card">
+        <div class="thumb" data-url="${url}">
+          <span>预览加载中</span>
+        </div>
+        <div class="video-body">
+          <div class="video-title">${title}</div>
+          <div class="video-meta">@${account} • ${row.__date ? formatDay(row.__date) : "-"}</div>
+          <div class="stat-row">
+            <div class="stat"><span>GMV</span><strong>${fmtCurrency(row["总收入"] || 0)}</strong></div>
+            <div class="stat"><span>成本</span><strong>${fmtCurrency(row["成本"] || 0)}</strong></div>
+            <div class="stat"><span>ROI</span><strong>${roi}</strong></div>
+            <div class="stat"><span>订单</span><strong>${fmtNumber(row["SKU 订单数"] || 0)}</strong></div>
+            <div class="stat"><span>广告曝光度</span><strong>${fmtNumber(row["商品广告曝光数"] || 0)}</strong></div>
+            <div class="stat"><span>CTR</span><strong>${fmtPct(row["商品广告点击率"] || 0)}</strong></div>
+          </div>
+          <div class="video-actions">
+            ${url ? `<a href="${url}" target="_blank" rel="noopener">打开视频</a>` : `<span class="page-meta">无链接</span>`}
+            ${url ? `<button class="copy-btn" data-link="${url}">复制链接</button>` : ``}
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  const thumbs = gmvVideoGrid.querySelectorAll(".thumb");
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(async entry => {
+      if (!entry.isIntersecting) return;
+      const container = entry.target;
+      observer.unobserve(container);
+      const url = container.getAttribute("data-url");
+      const thumb = await fetchVideoThumbnail(url);
+      const finalThumb = thumb || videoThumbPlaceholder;
+      container.innerHTML = `<img src="${finalThumb}" alt="视频缩略图" />`;
+    });
+  }, { rootMargin: "200px" });
+  thumbs.forEach(thumb => observer.observe(thumb));
+
+  renderGmvPagination(data.length);
+}
+
+function renderRecentGmvVideos(data) {
+  if (!recentGmvGrid || !recentGmvMeta) return;
+  const dated = data.filter(r => r.__date instanceof Date && !Number.isNaN(r.__date.getTime()));
+  if (!dated.length) {
+    recentGmvMeta.textContent = "未找到可用日期";
+    recentGmvGrid.innerHTML = "";
+    if (recentGmvPagination) recentGmvPagination.innerHTML = "";
+    return;
+  }
+
+  const maxDate = new Date(Math.max(...dated.map(r => r.__date.getTime())));
+  const cutoff = new Date(maxDate.getTime() - 6 * 24 * 60 * 60 * 1000);
+  const recent = dated
+    .filter(r => r.__date >= cutoff && (r["总收入"] || 0) > 0)
+    .sort((a, b) => (b["总收入"] || 0) - (a["总收入"] || 0));
+  recentGmvRows = recent;
+
+  recentGmvMeta.textContent = `${formatDay(cutoff)} - ${formatDay(maxDate)} • ${recent.length} 条`;
+
+  const totalPages = Math.max(1, Math.ceil(recent.length / recentGmvPageSize));
+  if (recentGmvPage > totalPages) recentGmvPage = totalPages;
+
+  const start = (recentGmvPage - 1) * recentGmvPageSize;
+  const end = start + recentGmvPageSize;
+  const visible = recent.slice(start, end);
+
+  recentGmvGrid.innerHTML = visible.map(row => {
+    const url = buildTiktokUrl(row);
+    const title = row["视频标题"] || "未命名视频";
+    const account = row["TikTok 账号"] || "-";
+    const roi = (row["ROI"] || 0).toFixed(2);
+    return `
+      <article class="video-card">
+        <div class="thumb" data-url="${url}">
+          <span>预览加载中</span>
+        </div>
+        <div class="video-body">
+          <div class="video-title">${title}</div>
+          <div class="video-meta">@${account} • ${row.__date ? formatDay(row.__date) : "-"}</div>
+          <div class="stat-row">
+            <div class="stat"><span>GMV</span><strong>${fmtCurrency(row["总收入"] || 0)}</strong></div>
+            <div class="stat"><span>成本</span><strong>${fmtCurrency(row["成本"] || 0)}</strong></div>
+            <div class="stat"><span>ROI</span><strong>${roi}</strong></div>
+            <div class="stat"><span>订单</span><strong>${fmtNumber(row["SKU 订单数"] || 0)}</strong></div>
+            <div class="stat"><span>广告曝光度</span><strong>${fmtNumber(row["商品广告曝光数"] || 0)}</strong></div>
+            <div class="stat"><span>CTR</span><strong>${fmtPct(row["商品广告点击率"] || 0)}</strong></div>
+          </div>
+          <div class="video-actions">
+            ${url ? `<a href="${url}" target="_blank" rel="noopener">打开视频</a>` : `<span class="page-meta">无链接</span>`}
+            ${url ? `<button class="copy-btn" data-link="${url}">复制链接</button>` : ``}
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  const thumbs = recentGmvGrid.querySelectorAll(".thumb");
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(async entry => {
+      if (!entry.isIntersecting) return;
+      const container = entry.target;
+      observer.unobserve(container);
+      const url = container.getAttribute("data-url");
+      const thumb = await fetchVideoThumbnail(url);
+      const finalThumb = thumb || videoThumbPlaceholder;
+      container.innerHTML = `<img src="${finalThumb}" alt="视频缩略图" />`;
+    });
+  }, { rootMargin: "200px" });
+  thumbs.forEach(thumb => observer.observe(thumb));
+
+  renderRecentGmvPagination(recent.length);
 }
 
 function applyFilterAndSort() {
-  const keyword = searchInput.value.trim();
+  const keywords = splitKeywords(searchInput.value);
   filteredRows = rows.filter(r => {
-    if (!keyword) return true;
-    return (
-      String(r["视频 ID"] || "").includes(keyword) ||
-      String(r["视频标题"] || "").includes(keyword) ||
-      String(r["TikTok 账号"] || "").includes(keyword)
-    );
+    if (!keywords.length) return true;
+    const haystack = normalizeKeyword(`${r["视频 ID"]} ${r["视频标题"]} ${r["TikTok 账号"]}`);
+    return keywords.every(key => haystack.includes(key));
   });
 
   const sortValue = sortSelect.value;
@@ -598,7 +793,8 @@ function applyFilterAndSort() {
   };
   filteredRows.sort(sortMap[sortValue]);
 
-  renderTable(filteredRows.slice(0, 200));
+  gmvPage = 1;
+  renderGmvVideoCards(filteredRows);
 }
 
 function setupDownload() {
@@ -679,10 +875,12 @@ if (fileInput) {
 
       renderRecommendations(rows);
       renderAggregateTable(accountTable, buildAggregate(rows, "TikTok 账号"));
-      renderAggregateTable(typeTable, buildAggregate(rows, "创意作品类型"));
-      renderAggregateTable(sourceTable, buildAggregate(rows, "视频来源"));
+    renderAggregateTable(typeTable, buildAggregate(rows, "创意作品类型"));
+    renderAggregateTable(sourceTable, buildAggregate(rows, "视频来源"));
 
-      applyFilterAndSort();
+    recentGmvPage = 1;
+    renderRecentGmvVideos(rows);
+    applyFilterAndSort();
     };
     reader.readAsArrayBuffer(file);
   });
@@ -710,6 +908,74 @@ if (downloadCsvBtn) setupDownload();
 
 if (recommendationsEl) renderRecommendations([]);
 
+if (gmvPagination) {
+  gmvPagination.addEventListener("click", event => {
+    const btn = event.target.closest("button[data-page]");
+    if (!btn) return;
+    const totalPages = Math.max(1, Math.ceil(filteredRows.length / gmvPageSize));
+    const page = btn.getAttribute("data-page");
+    if (page === "prev") gmvPage = Math.max(1, gmvPage - 1);
+    else if (page === "next") gmvPage = Math.min(totalPages, gmvPage + 1);
+    else gmvPage = Math.min(totalPages, Number(page));
+    renderGmvVideoCards(filteredRows);
+  });
+}
+
+if (gmvVideoGrid) {
+  gmvVideoGrid.addEventListener("click", async event => {
+    const btn = event.target.closest(".copy-btn");
+    if (!btn) return;
+    const link = btn.getAttribute("data-link");
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      btn.textContent = "已复制";
+      setTimeout(() => {
+        btn.textContent = "复制链接";
+      }, 1200);
+    } catch (err) {
+      btn.textContent = "复制失败";
+      setTimeout(() => {
+        btn.textContent = "复制链接";
+      }, 1200);
+    }
+  });
+}
+
+if (recentGmvPagination) {
+  recentGmvPagination.addEventListener("click", event => {
+    const btn = event.target.closest("button[data-page]");
+    if (!btn) return;
+    const totalPages = Math.max(1, Math.ceil(recentGmvRows.length / recentGmvPageSize));
+    const page = btn.getAttribute("data-page");
+    if (page === "prev") recentGmvPage = Math.max(1, recentGmvPage - 1);
+    else if (page === "next") recentGmvPage = Math.min(totalPages, recentGmvPage + 1);
+    else recentGmvPage = Math.min(totalPages, Number(page));
+    renderRecentGmvVideos(rows);
+  });
+}
+
+if (recentGmvGrid) {
+  recentGmvGrid.addEventListener("click", async event => {
+    const btn = event.target.closest(".copy-btn");
+    if (!btn) return;
+    const link = btn.getAttribute("data-link");
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      btn.textContent = "已复制";
+      setTimeout(() => {
+        btn.textContent = "复制链接";
+      }, 1200);
+    } catch (err) {
+      btn.textContent = "复制失败";
+      setTimeout(() => {
+        btn.textContent = "复制链接";
+      }, 1200);
+    }
+  });
+}
+
 
 // CUSCUS视频看板
 const videoFields = {
@@ -726,7 +992,23 @@ const videoFields = {
 let videoRows = [];
 let videoFiltered = [];
 let videoPage = 1;
-const videoPageSize = 20;
+let videoPageSize = 20;
+const videoThumbCache = new Map();
+const videoThumbFailCount = new Map();
+const videoThumbPlaceholder = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='640' height='360'><rect width='100%' height='100%' fill='%2310151f'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%239aa3b2' font-family='Arial' font-size='20'>暂无缩略图</text></svg>";
+
+function normalizeKeyword(value) {
+  return String(value || "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function splitKeywords(value) {
+  const normalized = normalizeKeyword(value);
+  if (!normalized) return [];
+  return normalized.split(/[ ,，]+/).filter(Boolean);
+}
 
 function parseVideoSheet(data) {
   const workbook = XLSX.read(data, { type: "array" });
@@ -761,7 +1043,7 @@ function updateVideoKpis(data) {
   const kpis = [
     { title: "视频数量", value: fmtNumber(data.length), note: "导入的有效视频数" },
     { title: "总 GMV", value: fmtCurrency(totalGmv), note: "视频列表 GMV 汇总" },
-    { title: "总曝光", value: fmtNumber(totalImpressions), note: "Shoppable impressions" },
+    { title: "广告曝光度", value: fmtNumber(totalImpressions), note: "Shoppable impressions" },
     { title: "总点赞", value: fmtNumber(totalLikes), note: "Shoppable likes" },
     { title: "总评论", value: fmtNumber(totalComments), note: "Shoppable comments" }
   ];
@@ -780,18 +1062,33 @@ function updateVideoKpis(data) {
 
 async function fetchVideoThumbnail(url) {
   if (!url) return null;
-  try {
-    const res = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.thumbnail_url || null;
-  } catch (err) {
-    return null;
+  if (videoThumbCache.has(url)) return videoThumbCache.get(url);
+  const failures = videoThumbFailCount.get(url) || 0;
+  if (failures >= 3) return videoThumbPlaceholder;
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const res = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
+      if (!res.ok) throw new Error("oembed");
+      const data = await res.json();
+      const thumb = data.thumbnail_url || videoThumbPlaceholder;
+      videoThumbCache.set(url, thumb);
+      return thumb;
+    } catch (err) {
+      const nextFail = (videoThumbFailCount.get(url) || 0) + 1;
+      videoThumbFailCount.set(url, nextFail);
+      if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 300));
+    }
   }
+
+  videoThumbCache.set(url, videoThumbPlaceholder);
+  return videoThumbPlaceholder;
 }
 
 function renderVideoCards(data) {
-  const visible = data.slice(0, videoPage * videoPageSize);
+  const start = (videoPage - 1) * videoPageSize;
+  const end = start + videoPageSize;
+  const visible = data.slice(start, end);
   videoGrid.innerHTML = visible.map((row, idx) => `
     <article class="video-card" data-index="${idx}">
       <div class="thumb" data-url="${row.__link}">
@@ -816,11 +1113,7 @@ function renderVideoCards(data) {
 
   setupVideoThumbObserver();
 
-  if (visible.length >= data.length) {
-    loadMoreVideosBtn.style.display = "none";
-  } else {
-    loadMoreVideosBtn.style.display = "inline-flex";
-  }
+  renderVideoPagination(data.length);
 }
 
 function setupVideoThumbObserver() {
@@ -832,25 +1125,52 @@ function setupVideoThumbObserver() {
       observer.unobserve(container);
       const url = container.getAttribute("data-url");
       const thumb = await fetchVideoThumbnail(url);
-      if (!thumb) {
-        container.innerHTML = "<span>暂无缩略图</span>";
-        return;
-      }
-      container.innerHTML = `<img src="${thumb}" alt="视频缩略图" />`;
+      const finalThumb = thumb || videoThumbPlaceholder;
+      container.innerHTML = `<img src="${finalThumb}" alt="视频缩略图" />`;
     });
   }, { rootMargin: "200px" });
 
   thumbs.forEach(thumb => observer.observe(thumb));
 }
 
+function renderVideoPagination(totalCount) {
+  if (!videoPagination) return;
+  const totalPages = Math.max(1, Math.ceil(totalCount / videoPageSize));
+  const current = Math.min(videoPage, totalPages);
+  const pages = [];
+  const windowSize = 5;
+  pages.push(1);
+  let start = Math.max(2, current - Math.floor(windowSize / 2));
+  let end = Math.min(totalPages - 1, start + windowSize - 1);
+  start = Math.max(2, end - windowSize + 1);
+  if (start > 2) pages.push("...");
+  for (let i = start; i <= end; i += 1) pages.push(i);
+  if (end < totalPages - 1) pages.push("...");
+  if (totalPages > 1) pages.push(totalPages);
+
+  const pageButtons = pages.map(p => {
+    if (p === "...") return `<span class="ellipsis">…</span>`;
+    return `<button class="page-btn ${p === current ? "active" : ""}" data-page="${p}">${p}</button>`;
+  }).join("");
+
+  videoPagination.innerHTML = `
+    <button class="ghost" data-page="prev" ${current === 1 ? "disabled" : ""}>上一页</button>
+    ${pageButtons}
+    <button class="ghost" data-page="next" ${current === totalPages ? "disabled" : ""}>下一页</button>
+    <span class="page-meta">共 ${totalPages} 页</span>
+    <div class="page-jump">
+      <input id="videoPageInput" class="search" placeholder="页码" />
+      <button id="videoPageGo" class="ghost">跳转</button>
+    </div>
+  `;
+}
+
 function applyVideoFilterAndSort(resetPage = true) {
-  const keyword = videoSearchInput.value.trim();
+  const keywords = splitKeywords(videoSearchInput.value);
   videoFiltered = videoRows.filter(r => {
-    if (!keyword) return true;
-    return (
-      String(r.__name || "").includes(keyword) ||
-      String(r.__creator || "").includes(keyword)
-    );
+    if (!keywords.length) return true;
+    const haystack = normalizeKeyword(`${r.__name} ${r.__creator}`);
+    return keywords.every(key => haystack.includes(key));
   });
 
   const sortValue = videoSortSelect.value;
@@ -890,10 +1210,44 @@ if (videoSortSelect) {
   videoSortSelect.addEventListener("change", () => applyVideoFilterAndSort(true));
 }
 
-if (loadMoreVideosBtn) {
-  loadMoreVideosBtn.addEventListener("click", () => {
-    if (!videoFiltered.length) return;
-    videoPage += 1;
+if (videoPageSizeSelect) {
+  videoPageSizeSelect.addEventListener("change", () => {
+    const next = Number(videoPageSizeSelect.value);
+    videoPageSize = Number.isNaN(next) ? 20 : next;
+    applyVideoFilterAndSort(true);
+  });
+}
+
+if (videoPagination) {
+  videoPagination.addEventListener("click", event => {
+    const btn = event.target.closest("button[data-page]");
+    const jumpBtn = event.target.closest("#videoPageGo");
+    if (jumpBtn) {
+      const input = videoPagination.querySelector("#videoPageInput");
+      const totalPages = Math.max(1, Math.ceil(videoFiltered.length / videoPageSize));
+      const target = Number(input?.value);
+      if (!Number.isNaN(target)) {
+        videoPage = Math.min(totalPages, Math.max(1, target));
+        renderVideoCards(videoFiltered);
+      }
+      return;
+    }
+    if (!btn) return;
+    const totalPages = Math.max(1, Math.ceil(videoFiltered.length / videoPageSize));
+    const page = btn.getAttribute("data-page");
+    if (page === "prev") videoPage = Math.max(1, videoPage - 1);
+    else if (page === "next") videoPage = Math.min(totalPages, videoPage + 1);
+    else videoPage = Math.min(totalPages, Number(page));
+    renderVideoCards(videoFiltered);
+  });
+
+  videoPagination.addEventListener("keydown", event => {
+    if (event.key !== "Enter") return;
+    if (!event.target || event.target.id !== "videoPageInput") return;
+    const totalPages = Math.max(1, Math.ceil(videoFiltered.length / videoPageSize));
+    const target = Number(event.target.value);
+    if (Number.isNaN(target)) return;
+    videoPage = Math.min(totalPages, Math.max(1, target));
     renderVideoCards(videoFiltered);
   });
 }
