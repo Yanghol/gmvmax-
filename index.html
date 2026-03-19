@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CusCus工作台</title>
+  <title data-i18n="index.title">CusCus工作台</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
@@ -16,32 +16,37 @@
 
   <main class="app">
     <nav class="top-nav">
-      <div class="brand">CusCus工作台</div>
+      <div class="brand" data-i18n="common.brand">CusCus工作台</div>
+      <div class="lang-switch">
+        <button class="ghost" data-lang="zh" data-i18n="common.lang.zh">中文</button>
+        <button class="ghost" data-lang="en" data-i18n="common.lang.en">English</button>
+      </div>
     </nav>
 
     <header class="hero">
       <div>
-        <p class="eyebrow">选择模块</p>
-        <h1>CusCus导航页</h1>
-        <p class="sub">请选择要进入的功能模块。</p>
+        <p class="eyebrow" data-i18n="index.eyebrow">选择模块</p>
+        <h1 data-i18n="index.h1">CusCus导航页</h1>
+        <p class="sub" data-i18n="index.sub">请选择要进入的功能模块。</p>
       </div>
     </header>
 
     <section class="section">
       <div class="landing-grid">
         <a class="landing-card" href="gmv.html">
-          <h2>CusCus GMV MAX分析看台</h2>
-          <p>导入 GMV MAX 报表，生成关键指标、趋势、聚合与优化建议。</p>
+          <h2 data-i18n="index.card.gmv.title">CusCus GMV MAX分析看台</h2>
+          <p data-i18n="index.card.gmv.desc">导入 GMV MAX 报表，生成关键指标、趋势、聚合与优化建议。</p>
         </a>
         <a class="landing-card" href="video.html">
-          <h2>CusCus视频看板</h2>
-          <p>导入 Video List 表格，自动解析视频链接与缩略图，便于互动。</p>
+          <h2 data-i18n="index.card.video.title">CusCus视频看板</h2>
+          <p data-i18n="index.card.video.desc">导入 Video List 表格，自动解析视频链接与缩略图，便于互动。</p>
         </a>
       </div>
     </section>
   </main>
 
-  <footer class="footer">CusCus工作台 • 导航页</footer>
+  <footer class="footer" data-i18n="index.footer">CusCus工作台 • 导航页</footer>
+  <script src="i18n.js"></script>
 </body>
 </html>
 

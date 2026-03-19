@@ -21,6 +21,7 @@ const alertSummary = document.getElementById("alertSummary");
 const recentGmvGrid = document.getElementById("recentGmvGrid");
 const recentGmvPagination = document.getElementById("recentGmvPagination");
 const recentGmvMeta = document.getElementById("recentGmvMeta");
+const currencyButtons = document.querySelectorAll("[data-currency]");
 const videoFileInput = document.getElementById("videoFileInput");
 const videoFileMeta = document.getElementById("videoFileMeta");
 const videoDataStatus = document.getElementById("videoDataStatus");
@@ -38,12 +39,23 @@ function showLibWarning(message) {
   document.body.prepend(banner);
 }
 
+const tt = (key, vars) => {
+  if (typeof window.t === "function") return window.t(key, vars);
+  let text = key;
+  if (vars) {
+    Object.keys(vars).forEach(k => {
+      text = text.replace(new RegExp(`\\{${k}\\}`, "g"), vars[k]);
+    });
+  }
+  return text;
+};
+
 if (typeof XLSX === "undefined") {
-  showLibWarning("未加载表格解析库，请检查网络或稍后重试。");
+  showLibWarning(tt("lib.xlsx"));
 }
 
 if (document.getElementById("trendChart") && typeof Chart === "undefined") {
-  showLibWarning("图表库加载失败，趋势图暂不可用。");
+  showLibWarning(tt("lib.chart"));
 }
 
 let rows = [];
@@ -147,6 +159,31 @@ function fmtCurrency(value) {
   });
 }
 
+function normalizeCurrency(raw) {
+  if (!raw) return "IDR";
+  const text = String(raw).trim();
+  const upper = text.toUpperCase();
+  if (upper.includes("IDR") || upper.includes("RP") || upper.includes("RUPIAH") || text.includes("印尼")) return "IDR";
+  if (upper.includes("CNY") || upper.includes("RMB") || text.includes("人民币") || text.includes("元")) return "CNY";
+  return "IDR";
+}
+
+function convertMoney(value, baseCurrency = "IDR") {
+  if (!Number.isFinite(value)) return 0;
+  if (displayCurrency === baseCurrency) return value;
+  if (baseCurrency === "IDR" && displayCurrency === "CNY") return value / FX_IDR_PER_CNY;
+  if (baseCurrency === "CNY" && displayCurrency === "IDR") return value * FX_IDR_PER_CNY;
+  return value;
+}
+
+function fmtMoney(value, baseCurrency = "IDR") {
+  const converted = convertMoney(value, baseCurrency);
+  if (displayCurrency === "IDR") {
+    return `${converted.toLocaleString("zh-CN", { maximumFractionDigits: 0 })} IDR`;
+  }
+  return `${converted.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} CNY`;
+}
+
 function fmtPct(value) {
   return `${(value * 100).toFixed(2)}%`;
 }
@@ -244,15 +281,15 @@ function updateKpis(data) {
   });
 
   const kpis = [
-    { title: "总成本", value: fmtCurrency(cost), note: "GMV MAX 投放成本总和" },
-    { title: "总收入", value: fmtCurrency(revenue), note: "GMV MAX 归因收入" },
-    { title: "广告曝光度", value: fmtNumber(impressions), note: "广告曝光汇总" },
-    { title: "整体 ROI", value: roi.toFixed(2), note: "总收入 ÷ 总成本" },
-    { title: "总订单数", value: fmtNumber(orders), note: "SKU 订单汇总" },
-    { title: "平均下单成本", value: fmtCurrency(cpa), note: "成本 ÷ 订单" },
-    { title: "整体点击率", value: fmtPct(ctr), note: "点击 ÷ 曝光" },
-    { title: "整体转化率", value: fmtPct(cvr), note: "订单 ÷ 点击" },
-    { title: "平均完播率", value: fmtPct(avgWatch[5]), note: "平均观看深度" }
+    { title: tt("kpi.total_cost"), value: fmtMoney(cost, gmvBaseCurrency), note: tt("note.total_cost") },
+    { title: tt("kpi.total_revenue"), value: fmtMoney(revenue, gmvBaseCurrency), note: tt("note.total_revenue") },
+    { title: tt("kpi.ad_impressions"), value: fmtNumber(impressions), note: tt("note.ad_impressions") },
+    { title: tt("kpi.roi"), value: roi.toFixed(2), note: tt("note.roi") },
+    { title: tt("kpi.orders"), value: fmtNumber(orders), note: tt("note.orders") },
+    { title: tt("kpi.cpa"), value: fmtMoney(cpa, gmvBaseCurrency), note: tt("note.cpa") },
+    { title: tt("kpi.ctr"), value: fmtPct(ctr), note: tt("note.ctr") },
+    { title: tt("kpi.cvr"), value: fmtPct(cvr), note: tt("note.cvr") },
+    { title: tt("kpi.avg_watch"), value: fmtPct(avgWatch[5]), note: tt("note.avg_watch") }
   ];
 
   kpiGrid.innerHTML = kpis.map(kpi => `
@@ -263,7 +300,7 @@ function updateKpis(data) {
     </div>
   `).join("");
 
-  dataStatus.textContent = `已导入 ${data.length} 条视频数据`;
+  dataStatus.textContent = tt("status.uploaded", { count: data.length });
   dataStatus.style.color = "#5bd0ff";
 
   return { cost, revenue, roi, ctr, cvr, watch: avgWatch, orders, impressions, clicks };
@@ -291,18 +328,18 @@ function updateInFlight(data) {
   });
 
   const cards = [
-    { title: "投放中曝光", value: fmtNumber(impressions), note: "在投素材曝光量" },
-    { title: "投放中成本", value: fmtCurrency(cost), note: "在投素材成本" },
-    { title: "投放中收入", value: fmtCurrency(revenue), note: "在投素材收入" },
-    { title: "投放中 ROI", value: roi.toFixed(2), note: "投放中 ROI" },
-    { title: "投放中 CTR", value: fmtPct(ctr), note: "投放中点击率" },
-    { title: "投放中 CVR", value: fmtPct(cvr), note: "投放中转化率" },
-    { title: "2 秒播放率", value: fmtPct(watchAvg[0]), note: "投放中素材" },
-    { title: "6 秒播放率", value: fmtPct(watchAvg[1]), note: "投放中素材" },
-    { title: "25% 播放率", value: fmtPct(watchAvg[2]), note: "投放中素材" },
-    { title: "50% 播放率", value: fmtPct(watchAvg[3]), note: "投放中素材" },
-    { title: "75% 播放率", value: fmtPct(watchAvg[4]), note: "投放中素材" },
-    { title: "完播率", value: fmtPct(watchAvg[5]), note: "投放中素材" }
+    { title: tt("inflight.impressions"), value: fmtNumber(impressions), note: tt("inflight.note") },
+    { title: tt("inflight.cost"), value: fmtMoney(cost, gmvBaseCurrency), note: tt("inflight.note") },
+    { title: tt("inflight.revenue"), value: fmtMoney(revenue, gmvBaseCurrency), note: tt("inflight.note") },
+    { title: tt("inflight.roi"), value: roi.toFixed(2), note: tt("inflight.note") },
+    { title: tt("inflight.ctr"), value: fmtPct(ctr), note: tt("inflight.note") },
+    { title: tt("inflight.cvr"), value: fmtPct(cvr), note: tt("inflight.note") },
+    { title: tt("inflight.watch2"), value: fmtPct(watchAvg[0]), note: tt("inflight.note") },
+    { title: tt("inflight.watch6"), value: fmtPct(watchAvg[1]), note: tt("inflight.note") },
+    { title: tt("inflight.watch25"), value: fmtPct(watchAvg[2]), note: tt("inflight.note") },
+    { title: tt("inflight.watch50"), value: fmtPct(watchAvg[3]), note: tt("inflight.note") },
+    { title: tt("inflight.watch75"), value: fmtPct(watchAvg[4]), note: tt("inflight.note") },
+    { title: tt("inflight.watch100"), value: fmtPct(watchAvg[5]), note: tt("inflight.note") }
   ];
 
   inFlightGrid.innerHTML = cards.map(card => `
@@ -559,29 +596,29 @@ function renderRecommendations(data) {
 
   const recs = [
     {
-      title: `高 ROI 素材（前 25%）建议加预算`,
+      title: tt("rec.high_roi"),
       list: topRoi.map(r => `${r["视频 ID"]} | ROI ${r["ROI"].toFixed(2)}`),
-      fallback: "暂无明显高 ROI 素材"
+      fallback: tt("rec.none")
     },
     {
-      title: `高成本无订单素材建议暂停`,
-      list: highCostNoOrder.map(r => `${r["视频 ID"]} | 成本 ${fmtCurrency(r["成本"])}`),
-      fallback: "未发现高成本无订单素材"
+      title: tt("rec.high_cost_no_order"),
+      list: highCostNoOrder.map(r => `${r["视频 ID"]} | ${tt("label.cost")} ${fmtCurrency(r["成本"])}`),
+      fallback: tt("rec.none_cost")
     },
     {
-      title: `高曝光低点击需优化封面/开头`,
+      title: tt("rec.high_impr_low_ctr"),
       list: highImpressionLowCtr.map(r => `${r["视频 ID"]} | CTR ${fmtPct(r["商品广告点击率"])}`),
-      fallback: "未发现高曝光低点击素材"
+      fallback: tt("rec.none_ctr")
     },
     {
-      title: `高点击低转化需优化价格或落地页`,
+      title: tt("rec.high_ctr_low_cvr"),
       list: highCtrLowCvr.map(r => `${r["视频 ID"]} | CVR ${fmtPct(r["广告转化率"])}`),
-      fallback: "未发现高点击低转化素材"
+      fallback: tt("rec.none_cvr")
     },
     {
-      title: `低完播率脚本需强化节奏`,
-      list: lowWatch.map(r => `${r["视频 ID"]} | 完播 ${fmtPct(r["广告视频完播率"])}`),
-      fallback: "完播率整体较好"
+      title: tt("rec.low_watch"),
+      list: lowWatch.map(r => `${r["视频 ID"]} | ${tt("inflight.watch100")} ${fmtPct(r["广告视频完播率"])}`),
+      fallback: tt("rec.none_watch")
     }
   ];
 
@@ -614,10 +651,10 @@ function renderGmvPagination(totalCount) {
   }).join("");
 
   gmvPagination.innerHTML = `
-    <button class="ghost" data-page="prev" ${current === 1 ? "disabled" : ""}>上一页</button>
+    <button class="ghost" data-page="prev" ${current === 1 ? "disabled" : ""}>${tt("pagination.prev")}</button>
     ${pageButtons}
-    <button class="ghost" data-page="next" ${current === totalPages ? "disabled" : ""}>下一页</button>
-    <span class="page-meta">共 ${totalPages} 页</span>
+    <button class="ghost" data-page="next" ${current === totalPages ? "disabled" : ""}>${tt("pagination.next")}</button>
+    <span class="page-meta">${tt("pagination.total", { count: totalPages })}</span>
   `;
 }
 
@@ -642,10 +679,10 @@ function renderRecentGmvPagination(totalCount) {
   }).join("");
 
   recentGmvPagination.innerHTML = `
-    <button class="ghost" data-page="prev" ${current === 1 ? "disabled" : ""}>上一页</button>
+    <button class="ghost" data-page="prev" ${current === 1 ? "disabled" : ""}>${tt("pagination.prev")}</button>
     ${pageButtons}
-    <button class="ghost" data-page="next" ${current === totalPages ? "disabled" : ""}>下一页</button>
-    <span class="page-meta">共 ${totalPages} 页</span>
+    <button class="ghost" data-page="next" ${current === totalPages ? "disabled" : ""}>${tt("pagination.next")}</button>
+    <span class="page-meta">${tt("pagination.total", { count: totalPages })}</span>
   `;
 }
 
@@ -662,23 +699,23 @@ function renderGmvVideoCards(data) {
     const roi = (row["ROI"] || 0).toFixed(2);
     return `
       <article class="video-card">
-        <div class="thumb" data-url="${url}">
-          <span>预览加载中</span>
-        </div>
+      <div class="thumb" data-url="${url}">
+        <span>${tt("thumb.loading")}</span>
+      </div>
         <div class="video-body">
           <div class="video-title">${title}</div>
           <div class="video-meta">@${account} • ${row.__date ? formatDay(row.__date) : "-"}</div>
           <div class="stat-row">
-            <div class="stat"><span>GMV</span><strong>${fmtCurrency(row["总收入"] || 0)}</strong></div>
-            <div class="stat"><span>成本</span><strong>${fmtCurrency(row["成本"] || 0)}</strong></div>
-            <div class="stat"><span>ROI</span><strong>${roi}</strong></div>
-            <div class="stat"><span>订单</span><strong>${fmtNumber(row["SKU 订单数"] || 0)}</strong></div>
-            <div class="stat"><span>广告曝光度</span><strong>${fmtNumber(row["商品广告曝光数"] || 0)}</strong></div>
-            <div class="stat"><span>CTR</span><strong>${fmtPct(row["商品广告点击率"] || 0)}</strong></div>
+            <div class="stat"><span>${tt("label.gmv")}</span><strong>${fmtMoney(row["总收入"] || 0, gmvBaseCurrency)}</strong></div>
+            <div class="stat"><span>${tt("label.cost")}</span><strong>${fmtMoney(row["成本"] || 0, gmvBaseCurrency)}</strong></div>
+            <div class="stat"><span>${tt("label.roi")}</span><strong>${roi}</strong></div>
+            <div class="stat"><span>${tt("label.orders")}</span><strong>${fmtNumber(row["SKU 订单数"] || 0)}</strong></div>
+            <div class="stat"><span>${tt("label.ad_impressions")}</span><strong>${fmtNumber(row["商品广告曝光数"] || 0)}</strong></div>
+            <div class="stat"><span>${tt("label.ctr")}</span><strong>${fmtPct(row["商品广告点击率"] || 0)}</strong></div>
           </div>
           <div class="video-actions">
-            ${url ? `<a href="${url}" target="_blank" rel="noopener">打开视频</a>` : `<span class="page-meta">无链接</span>`}
-            ${url ? `<button class="copy-btn" data-link="${url}">复制链接</button>` : ``}
+            ${url ? `<a href="${url}" target="_blank" rel="noopener">${tt("action.open")}</a>` : `<span class="page-meta">${tt("action.no_link")}</span>`}
+            ${url ? `<button class="copy-btn" data-link="${url}">${tt("action.copy")}</button>` : ``}
           </div>
         </div>
       </article>
@@ -706,7 +743,7 @@ function renderRecentGmvVideos(data) {
   if (!recentGmvGrid || !recentGmvMeta) return;
   const dated = data.filter(r => r.__date instanceof Date && !Number.isNaN(r.__date.getTime()));
   if (!dated.length) {
-    recentGmvMeta.textContent = "未找到可用日期";
+    recentGmvMeta.textContent = tt("status.no_date");
     recentGmvGrid.innerHTML = "";
     if (recentGmvPagination) recentGmvPagination.innerHTML = "";
     return;
@@ -719,7 +756,11 @@ function renderRecentGmvVideos(data) {
     .sort((a, b) => (b["总收入"] || 0) - (a["总收入"] || 0));
   recentGmvRows = recent;
 
-  recentGmvMeta.textContent = `${formatDay(cutoff)} - ${formatDay(maxDate)} • ${recent.length} 条`;
+  recentGmvMeta.textContent = tt("recent.meta", {
+    start: formatDay(cutoff),
+    end: formatDay(maxDate),
+    count: recent.length
+  });
 
   const totalPages = Math.max(1, Math.ceil(recent.length / recentGmvPageSize));
   if (recentGmvPage > totalPages) recentGmvPage = totalPages;
@@ -735,23 +776,23 @@ function renderRecentGmvVideos(data) {
     const roi = (row["ROI"] || 0).toFixed(2);
     return `
       <article class="video-card">
-        <div class="thumb" data-url="${url}">
-          <span>预览加载中</span>
-        </div>
+      <div class="thumb" data-url="${url}">
+        <span>${tt("thumb.loading")}</span>
+      </div>
         <div class="video-body">
           <div class="video-title">${title}</div>
           <div class="video-meta">@${account} • ${row.__date ? formatDay(row.__date) : "-"}</div>
           <div class="stat-row">
-            <div class="stat"><span>GMV</span><strong>${fmtCurrency(row["总收入"] || 0)}</strong></div>
-            <div class="stat"><span>成本</span><strong>${fmtCurrency(row["成本"] || 0)}</strong></div>
-            <div class="stat"><span>ROI</span><strong>${roi}</strong></div>
-            <div class="stat"><span>订单</span><strong>${fmtNumber(row["SKU 订单数"] || 0)}</strong></div>
-            <div class="stat"><span>广告曝光度</span><strong>${fmtNumber(row["商品广告曝光数"] || 0)}</strong></div>
-            <div class="stat"><span>CTR</span><strong>${fmtPct(row["商品广告点击率"] || 0)}</strong></div>
+            <div class="stat"><span>${tt("label.gmv")}</span><strong>${fmtMoney(row["总收入"] || 0, gmvBaseCurrency)}</strong></div>
+            <div class="stat"><span>${tt("label.cost")}</span><strong>${fmtMoney(row["成本"] || 0, gmvBaseCurrency)}</strong></div>
+            <div class="stat"><span>${tt("label.roi")}</span><strong>${roi}</strong></div>
+            <div class="stat"><span>${tt("label.orders")}</span><strong>${fmtNumber(row["SKU 订单数"] || 0)}</strong></div>
+            <div class="stat"><span>${tt("label.ad_impressions")}</span><strong>${fmtNumber(row["商品广告曝光数"] || 0)}</strong></div>
+            <div class="stat"><span>${tt("label.ctr")}</span><strong>${fmtPct(row["商品广告点击率"] || 0)}</strong></div>
           </div>
           <div class="video-actions">
-            ${url ? `<a href="${url}" target="_blank" rel="noopener">打开视频</a>` : `<span class="page-meta">无链接</span>`}
-            ${url ? `<button class="copy-btn" data-link="${url}">复制链接</button>` : ``}
+            ${url ? `<a href="${url}" target="_blank" rel="noopener">${tt("action.open")}</a>` : `<span class="page-meta">${tt("action.no_link")}</span>`}
+            ${url ? `<button class="copy-btn" data-link="${url}">${tt("action.copy")}</button>` : ``}
           </div>
         </div>
       </article>
@@ -819,7 +860,7 @@ function renderAlerts(data) {
   const cvrThreshold = parseThreshold(cvrThresholdInput.value, true);
 
   if (roiThreshold === null && ctrThreshold === null && cvrThreshold === null) {
-    alertSummary.textContent = "请输入至少一个阈值并点击“应用阈值”";
+    alertSummary.textContent = tt("alert.none");
     return;
   }
 
@@ -827,7 +868,11 @@ function renderAlerts(data) {
   const belowCtr = ctrThreshold === null ? [] : data.filter(r => r["商品广告点击率"] < ctrThreshold);
   const belowCvr = cvrThreshold === null ? [] : data.filter(r => r["广告转化率"] < cvrThreshold);
 
-  alertSummary.textContent = `ROI 低于阈值 ${belowRoi.length} 条 | CTR 低于阈值 ${belowCtr.length} 条 | CVR 低于阈值 ${belowCvr.length} 条`;
+  alertSummary.textContent = tt("alert.summary", {
+    roi: belowRoi.length,
+    ctr: belowCtr.length,
+    cvr: belowCvr.length
+  });
 
   const alertCards = [
     {
@@ -865,8 +910,14 @@ if (fileInput) {
 
     const reader = new FileReader();
     reader.onload = e => {
-      rows = parseSheet(e.target.result);
-      currentSummary = updateKpis(rows);
+    rows = parseSheet(e.target.result);
+    const currencyRow = rows.find(r => r["货币"]);
+    if (currencyRow && currencyRow["货币"]) {
+      gmvBaseCurrency = normalizeCurrency(currencyRow["货币"]);
+    } else {
+      gmvBaseCurrency = "IDR";
+    }
+    currentSummary = updateKpis(rows);
       updateInFlight(rows);
       renderCharts(currentSummary);
 
@@ -929,14 +980,14 @@ if (gmvVideoGrid) {
     if (!link) return;
     try {
       await navigator.clipboard.writeText(link);
-      btn.textContent = "已复制";
+      btn.textContent = tt("action.copied");
       setTimeout(() => {
-        btn.textContent = "复制链接";
+        btn.textContent = tt("action.copy");
       }, 1200);
     } catch (err) {
-      btn.textContent = "复制失败";
+      btn.textContent = tt("action.copy_fail");
       setTimeout(() => {
-        btn.textContent = "复制链接";
+        btn.textContent = tt("action.copy");
       }, 1200);
     }
   });
@@ -963,18 +1014,68 @@ if (recentGmvGrid) {
     if (!link) return;
     try {
       await navigator.clipboard.writeText(link);
-      btn.textContent = "已复制";
+      btn.textContent = tt("action.copied");
       setTimeout(() => {
-        btn.textContent = "复制链接";
+        btn.textContent = tt("action.copy");
       }, 1200);
     } catch (err) {
-      btn.textContent = "复制失败";
+      btn.textContent = tt("action.copy_fail");
       setTimeout(() => {
-        btn.textContent = "复制链接";
+        btn.textContent = tt("action.copy");
       }, 1200);
     }
   });
 }
+
+const FX_IDR_PER_CNY = 2460;
+let displayCurrency = localStorage.getItem("currency") || "IDR";
+let gmvBaseCurrency = "IDR";
+
+function updateCurrencyButtons() {
+  currencyButtons.forEach(btn => {
+    const cur = btn.getAttribute("data-currency");
+    btn.classList.toggle("active", cur === displayCurrency);
+  });
+}
+
+function setCurrency(next) {
+  if (next === displayCurrency) return;
+  displayCurrency = next;
+  localStorage.setItem("currency", displayCurrency);
+  updateCurrencyButtons();
+  if (rows.length) {
+    currentSummary = updateKpis(rows);
+    updateInFlight(rows);
+    renderCharts(currentSummary);
+    renderRecentGmvVideos(rows);
+    renderGmvVideoCards(filteredRows);
+  }
+  if (videoRows.length) {
+    updateVideoKpis(videoRows);
+    renderVideoCards(videoFiltered.length ? videoFiltered : videoRows);
+  }
+}
+
+currencyButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    setCurrency(btn.getAttribute("data-currency"));
+  });
+});
+updateCurrencyButtons();
+
+document.addEventListener("langchange", () => {
+  if (rows.length) {
+    currentSummary = updateKpis(rows);
+    updateInFlight(rows);
+    renderCharts(currentSummary);
+    renderRecentGmvVideos(rows);
+    renderGmvVideoCards(filteredRows);
+  }
+  if (videoRows.length) {
+    updateVideoKpis(videoRows);
+    renderVideoCards(videoFiltered.length ? videoFiltered : videoRows);
+  }
+});
 
 
 // CUSCUS视频看板
@@ -1041,11 +1142,11 @@ function updateVideoKpis(data) {
   const totalComments = data.reduce((sum, r) => sum + r.__comments, 0);
 
   const kpis = [
-    { title: "视频数量", value: fmtNumber(data.length), note: "导入的有效视频数" },
-    { title: "总 GMV", value: fmtCurrency(totalGmv), note: "视频列表 GMV 汇总" },
-    { title: "广告曝光度", value: fmtNumber(totalImpressions), note: "Shoppable impressions" },
-    { title: "总点赞", value: fmtNumber(totalLikes), note: "Shoppable likes" },
-    { title: "总评论", value: fmtNumber(totalComments), note: "Shoppable comments" }
+    { title: tt("kpi.video_count"), value: fmtNumber(data.length), note: tt("note.video_count") },
+    { title: tt("kpi.total_gmv"), value: fmtMoney(totalGmv, "IDR"), note: tt("note.total_gmv") },
+    { title: tt("kpi.total_impressions"), value: fmtNumber(totalImpressions), note: tt("note.total_impressions") },
+    { title: tt("kpi.total_likes"), value: fmtNumber(totalLikes), note: tt("note.total_likes") },
+    { title: tt("kpi.total_comments"), value: fmtNumber(totalComments), note: tt("note.total_comments") }
   ];
 
   videoKpiGrid.innerHTML = kpis.map(kpi => `
@@ -1056,7 +1157,7 @@ function updateVideoKpis(data) {
     </div>
   `).join("");
 
-  videoDataStatus.textContent = `已导入 ${data.length} 条视频`;
+  videoDataStatus.textContent = tt("status.uploaded_video", { count: data.length });
   videoDataStatus.style.color = "#5bd0ff";
 }
 
@@ -1092,20 +1193,20 @@ function renderVideoCards(data) {
   videoGrid.innerHTML = visible.map((row, idx) => `
     <article class="video-card" data-index="${idx}">
       <div class="thumb" data-url="${row.__link}">
-        <span>预览加载中</span>
+        <span>${tt("thumb.loading")}</span>
       </div>
       <div class="video-body">
         <div class="video-title">${row.__name || "未命名视频"}</div>
         <div class="video-meta">@${row.__creator || "-"} • ${row.__date ? row.__date.toISOString().slice(0, 10) : "-"}</div>
         <div class="stat-row">
-          <div class="stat"><span>GMV</span><strong>${fmtCurrency(row.__gmv)}</strong></div>
-          <div class="stat"><span>曝光</span><strong>${fmtNumber(row.__impressions)}</strong></div>
-          <div class="stat"><span>点赞</span><strong>${fmtNumber(row.__likes)}</strong></div>
-          <div class="stat"><span>评论</span><strong>${fmtNumber(row.__comments)}</strong></div>
+          <div class="stat"><span>${tt("label.gmv")}</span><strong>${fmtMoney(row.__gmv, "IDR")}</strong></div>
+          <div class="stat"><span>${tt("label.impressions")}</span><strong>${fmtNumber(row.__impressions)}</strong></div>
+          <div class="stat"><span>${tt("label.likes")}</span><strong>${fmtNumber(row.__likes)}</strong></div>
+          <div class="stat"><span>${tt("label.comments")}</span><strong>${fmtNumber(row.__comments)}</strong></div>
         </div>
         <div class="video-actions">
-          <a href="${row.__link}" target="_blank" rel="noopener">打开视频</a>
-          <button class="copy-btn" data-link="${row.__link}">复制链接</button>
+          <a href="${row.__link}" target="_blank" rel="noopener">${tt("action.open")}</a>
+          <button class="copy-btn" data-link="${row.__link}">${tt("action.copy")}</button>
         </div>
       </div>
     </article>
@@ -1154,13 +1255,13 @@ function renderVideoPagination(totalCount) {
   }).join("");
 
   videoPagination.innerHTML = `
-    <button class="ghost" data-page="prev" ${current === 1 ? "disabled" : ""}>上一页</button>
+    <button class="ghost" data-page="prev" ${current === 1 ? "disabled" : ""}>${tt("pagination.prev")}</button>
     ${pageButtons}
-    <button class="ghost" data-page="next" ${current === totalPages ? "disabled" : ""}>下一页</button>
-    <span class="page-meta">共 ${totalPages} 页</span>
+    <button class="ghost" data-page="next" ${current === totalPages ? "disabled" : ""}>${tt("pagination.next")}</button>
+    <span class="page-meta">${tt("pagination.total", { count: totalPages })}</span>
     <div class="page-jump">
-      <input id="videoPageInput" class="search" placeholder="页码" />
-      <button id="videoPageGo" class="ghost">跳转</button>
+      <input id="videoPageInput" class="search" placeholder="${tt("pagination.page")}" />
+      <button id="videoPageGo" class="ghost">${tt("pagination.jump")}</button>
     </div>
   `;
 }
@@ -1226,12 +1327,12 @@ if (videoPagination) {
       const input = videoPagination.querySelector("#videoPageInput");
       const totalPages = Math.max(1, Math.ceil(videoFiltered.length / videoPageSize));
       const target = Number(input?.value);
-      if (!Number.isNaN(target)) {
-        videoPage = Math.min(totalPages, Math.max(1, target));
-        renderVideoCards(videoFiltered);
-      }
-      return;
+    if (!Number.isNaN(target)) {
+      videoPage = Math.min(totalPages, Math.max(1, target));
+      renderVideoCards(videoFiltered);
     }
+    return;
+  }
     if (!btn) return;
     const totalPages = Math.max(1, Math.ceil(videoFiltered.length / videoPageSize));
     const page = btn.getAttribute("data-page");
@@ -1260,14 +1361,14 @@ if (videoGrid) {
     if (!link) return;
     try {
       await navigator.clipboard.writeText(link);
-      btn.textContent = "已复制";
+      btn.textContent = tt("action.copied");
       setTimeout(() => {
-        btn.textContent = "复制链接";
+        btn.textContent = tt("action.copy");
       }, 1200);
     } catch (err) {
-      btn.textContent = "复制失败";
+      btn.textContent = tt("action.copy_fail");
       setTimeout(() => {
-        btn.textContent = "复制链接";
+        btn.textContent = tt("action.copy");
       }, 1200);
     }
   });

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CusCus视频看板</title>
+  <title data-i18n="video.title">CusCus视频看板</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
@@ -17,54 +17,63 @@
 
   <main class="app">
     <nav class="top-nav">
-      <div class="brand">CusCus工作台</div>
+      <div class="brand" data-i18n="common.brand">CusCus工作台</div>
       <div class="nav-links">
-        <a href="index.html">导航页</a>
-        <a href="gmv.html">GMV MAX分析</a>
-        <a href="video.html">视频看板</a>
+        <a href="index.html" data-i18n="common.nav.home">导航页</a>
+        <a href="gmv.html" data-i18n="common.nav.gmv">GMV MAX分析</a>
+        <a href="video.html" data-i18n="common.nav.video">视频看板</a>
+      </div>
+      <div class="lang-switch">
+        <button class="ghost" data-lang="zh" data-i18n="common.lang.zh">中文</button>
+        <button class="ghost" data-lang="en" data-i18n="common.lang.en">English</button>
+      </div>
+      <div class="currency-switch">
+        <span class="currency-label" data-i18n="fx.currency">货币</span>
+        <button class="ghost" data-currency="IDR">IDR</button>
+        <button class="ghost" data-currency="CNY">CNY</button>
       </div>
     </nav>
 
     <header class="hero" id="video">
       <div>
-        <p class="eyebrow">视频互动 • 链接与缩略图预览</p>
-        <h1>CusCus视频看板</h1>
-        <p class="sub">上传 Video List 表格，自动解析视频名称、链接、达人账号与缩略图预览。</p>
+        <p class="eyebrow" data-i18n="video.eyebrow">视频互动 • 链接与缩略图预览</p>
+        <h1 data-i18n="video.h1">CusCus视频看板</h1>
+        <p class="sub" data-i18n="video.sub">上传 Video List 表格，自动解析视频名称、链接、达人账号与缩略图预览。</p>
       </div>
       <div class="upload-card">
-        <div class="upload-title">导入视频列表</div>
+        <div class="upload-title" data-i18n="video.upload.title">导入视频列表</div>
         <label class="upload-btn">
-          选择 Excel 文件
+          <span data-i18n="video.upload.button">选择 Excel 文件</span>
           <input id="videoFileInput" type="file" accept=".xlsx,.xls" />
         </label>
-        <div class="upload-hint">支持 Video List 导出表</div>
-        <div id="videoFileMeta" class="upload-meta">尚未导入文件</div>
+        <div class="upload-hint" data-i18n="video.upload.hint">支持 Video List 导出表</div>
+        <div id="videoFileMeta" class="upload-meta" data-i18n="video.upload.empty">尚未导入文件</div>
       </div>
     </header>
 
     <section class="section">
       <div class="section-header">
-        <h2>概览</h2>
-        <div id="videoDataStatus" class="pill">等待导入</div>
+        <h2 data-i18n="video.section.overview">概览</h2>
+        <div id="videoDataStatus" class="pill" data-i18n="status.wait">等待导入</div>
       </div>
       <div class="kpi-grid" id="videoKpiGrid"></div>
     </section>
 
     <section class="section">
       <div class="section-header">
-        <h2>视频列表</h2>
+        <h2 data-i18n="video.section.list">视频列表</h2>
         <div class="section-actions">
-          <input id="videoSearchInput" class="search" placeholder="搜索视频名 / 账号" />
+          <input id="videoSearchInput" class="search" placeholder="搜索视频名 / 账号" data-i18n-placeholder="video.search.placeholder" />
           <select id="videoSortSelect" class="select">
-            <option value="date_desc">发布时间 从新到旧</option>
-            <option value="gmv_desc">GMV 从高到低</option>
-            <option value="likes_desc">点赞 从高到低</option>
-            <option value="comments_desc">评论 从高到低</option>
+            <option value="date_desc" data-i18n="video.sort.date">发布时间 从新到旧</option>
+            <option value="gmv_desc" data-i18n="video.sort.gmv">GMV 从高到低</option>
+            <option value="likes_desc" data-i18n="video.sort.likes">点赞 从高到低</option>
+            <option value="comments_desc" data-i18n="video.sort.comments">评论 从高到低</option>
           </select>
           <select id="videoPageSize" class="select">
-            <option value="20" selected>每页 20</option>
-            <option value="50">每页 50</option>
-            <option value="100">每页 100</option>
+            <option value="20" selected data-i18n="video.page.size20">每页 20</option>
+            <option value="50" data-i18n="video.page.size50">每页 50</option>
+            <option value="100" data-i18n="video.page.size100">每页 100</option>
           </select>
         </div>
       </div>
@@ -74,8 +83,9 @@
   </main>
 
   <button id="backToTop" class="back-to-top" aria-label="回到顶部">↑</button>
-  <footer class="footer">CusCus视频看板</footer>
+  <footer class="footer" data-i18n="video.footer">CusCus视频看板</footer>
 
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
