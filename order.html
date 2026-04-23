@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="order.title">CusCus订单分析</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="order.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <main class="app">
+    <nav class="top-nav">
+      <div class="brand" data-i18n="common.brand">CusCus工作台</div>
+      <div class="nav-links">
+        <a href="index.html" data-i18n="common.nav.home">导航页</a>
+        <a href="gmv.html" data-i18n="common.nav.gmv">GMV MAX分析</a>
+        <a href="video.html" data-i18n="common.nav.video">视频看板</a>
+        <a href="order.html" data-i18n="common.nav.order">订单分析</a>
+      </div>
+      <div class="lang-switch">
+        <button class="ghost" data-lang="zh" data-i18n="common.lang.zh">中文</button>
+        <button class="ghost" data-lang="en" data-i18n="common.lang.en">English</button>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div>
+        <p class="eyebrow" data-i18n="order.eyebrow">订单数据 • 筛选与聚合分析</p>
+        <h1 data-i18n="order.h1">CusCus订单分析</h1>
+        <p class="sub" data-i18n="order.sub">导入店铺订单CSV，自动识别寄样、映射产品名，多维度筛选与分析。</p>
+      </div>
+      <div class="upload-card">
+        <div class="upload-title" data-i18n="order.upload.title">导入订单</div>
+        <label class="upload-btn">
+          <span data-i18n="order.upload.button">选择 CSV 文件</span>
+          <input id="fileInput" type="file" accept=".csv" />
+        </label>
+        <div class="upload-hint" data-i18n="order.upload.hint">支持 TikTok Shop / Tokopedia 订单导出</div>
+        <div id="fileMeta" class="upload-meta" data-i18n="order.upload.empty">尚未导入文件</div>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 data-i18n="order.section.kpi">关键指标</h2>
+        <div id="dataStatus" class="pill" data-i18n="status.wait">等待导入</div>
+      </div>
+      <div class="kpi-grid" id="kpiGrid"></div>
+    </section>
+
+    <!-- V2: 产品排行榜 -->
+    <section class="section" id="aggregateSection" style="display:none">
+      <div class="section-header">
+        <h2 data-i18n="order.section.aggregate">聚合分析</h2>
+        <div class="pill" data-i18n="order.aggregate.pill">仅统计付费订单</div>
+      </div>
+
+      <div class="aggregate-grid">
+        <!-- 产品排行 -->
+        <div class="agg-card agg-wide">
+          <div class="agg-title" data-i18n="order.agg.product">产品销量排行</div>
+          <div class="table-wrap">
+            <table class="data-table" id="productRankTable">
+              <thead>
+                <tr>
+                  <th data-i18n="order.agg.rank">#</th>
+                  <th data-i18n="order.agg.product_name">产品名</th>
+                  <th data-i18n="order.agg.orders">订单数</th>
+                  <th data-i18n="order.agg.gmv">GMV</th>
+                  <th data-i18n="order.agg.cancel_rate">取消率</th>
+                </tr>
+              </thead>
+              <tbody id="productRankBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 省份排行 -->
+        <div class="agg-card">
+          <div class="agg-title" data-i18n="order.agg.province">省份 TOP 10</div>
+          <canvas id="provinceChart" height="260"></canvas>
+        </div>
+
+        <!-- 订单状态分布 -->
+        <div class="agg-card">
+          <div class="agg-title" data-i18n="order.agg.status">订单状态分布</div>
+          <canvas id="statusChart" height="260"></canvas>
+        </div>
+      </div>
+
+      <!-- 趋势图 -->
+      <div class="agg-card agg-full" style="margin-top:16px">
+        <div class="agg-title" data-i18n="order.agg.trend">每日订单趋势（付费订单）</div>
+        <canvas id="trendChart" height="100"></canvas>
+      </div>
+
+      <!-- 取消原因 + 寄样统计 -->
+      <div class="aggregate-grid" style="margin-top:16px">
+        <div class="agg-card">
+          <div class="agg-title" data-i18n="order.agg.cancel">取消原因分析</div>
+          <div class="table-wrap">
+            <table class="data-table" id="cancelTable">
+              <thead>
+                <tr>
+                  <th data-i18n="order.agg.cancel_reason">取消原因</th>
+                  <th data-i18n="order.agg.orders">订单数</th>
+                  <th data-i18n="order.agg.cancel_by">取消方</th>
+                </tr>
+              </thead>
+              <tbody id="cancelBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="agg-card">
+          <div class="agg-title" data-i18n="order.agg.sample">寄样产品分布</div>
+          <div class="table-wrap">
+            <table class="data-table" id="sampleTable">
+              <thead>
+                <tr>
+                  <th data-i18n="order.agg.product_name">产品名</th>
+                  <th data-i18n="order.agg.sample_count">寄样数</th>
+                </tr>
+              </thead>
+              <tbody id="sampleBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 data-i18n="order.section.filter">订单筛选</h2>
+        <button class="ghost" id="resetFilters" data-i18n="order.filter.reset">重置筛选</button>
+      </div>
+      <div class="filter-panel">
+        <div class="filter-row">
+          <div class="filter-item">
+            <label data-i18n="order.filter.search">订单号 / 用户名 / Tracking ID</label>
+            <input id="searchInput" class="search" placeholder="搜索..." data-i18n-placeholder="order.filter.search" />
+          </div>
+          <div class="filter-item">
+            <label data-i18n="order.filter.status">订单状态</label>
+            <select id="statusFilter" class="select">
+              <option value="" data-i18n="order.filter.all">全部</option>
+              <option value="Shipped">Shipped</option>
+              <option value="Completed">Completed</option>
+              <option value="Canceled">Canceled</option>
+              <option value="To ship">To ship</option>
+              <option value="Unpaid">Unpaid</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label data-i18n="order.filter.channel">渠道</label>
+            <select id="channelFilter" class="select">
+              <option value="" data-i18n="order.filter.all">全部</option>
+              <option value="TikTok">TikTok</option>
+              <option value="Tokopedia">Tokopedia</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label data-i18n="order.filter.sample">寄样状态</label>
+            <select id="sampleFilter" class="select">
+              <option value="" data-i18n="order.filter.all">全部</option>
+              <option value="paid" data-i18n="order.filter.paid">付费订单</option>
+              <option value="sample" data-i18n="order.filter.sample_only">仅寄样</option>
+            </select>
+          </div>
+        </div>
+        <div class="filter-row">
+          <div class="filter-item">
+            <label data-i18n="order.filter.product">产品名</label>
+            <input id="productFilter" class="search" placeholder="产品名..." data-i18n-placeholder="order.filter.product" />
+          </div>
+          <div class="filter-item">
+            <label data-i18n="order.filter.province">省份</label>
+            <select id="provinceFilter" class="select">
+              <option value="" data-i18n="order.filter.all">全部</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label data-i18n="order.filter.dateFrom">下单时间（从）</label>
+            <input id="dateFrom" type="date" class="search" />
+          </div>
+          <div class="filter-item">
+            <label data-i18n="order.filter.dateTo">下单时间（到）</label>
+            <input id="dateTo" type="date" class="search" />
+          </div>
+        </div>
+      </div>
+      <div class="filter-meta">
+        <span id="filterMeta" data-i18n="order.filter.showing">显示 0 / 0 订单</span>
+        <button class="ghost" id="exportBtn" data-i18n="order.filter.export">导出筛选结果</button>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 data-i18n="order.section.detail">订单明细</h2>
+        <div class="section-actions">
+          <select id="sortSelect" class="select">
+            <option value="date_desc" data-i18n="order.sort.date_desc">下单时间 从新到旧</option>
+            <option value="date_asc" data-i18n="order.sort.date_asc">下单时间 从旧到新</option>
+            <option value="amount_desc" data-i18n="order.sort.amount_desc">订单金额 从高到低</option>
+            <option value="amount_asc" data-i18n="order.sort.amount_asc">订单金额 从低到高</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-container">
+        <table class="order-table" id="orderTable">
+          <thead>
+            <tr>
+              <th data-i18n="order.table.orderId">订单号</th>
+              <th data-i18n="order.table.date">下单时间</th>
+              <th data-i18n="order.table.product">产品</th>
+              <th data-i18n="order.table.sku">SKU</th>
+              <th data-i18n="order.table.qty">数量</th>
+              <th data-i18n="order.table.amount">订单金额</th>
+              <th data-i18n="order.table.status">状态</th>
+              <th data-i18n="order.table.channel">渠道</th>
+              <th data-i18n="order.table.province">省份</th>
+              <th data-i18n="order.table.sample">寄样</th>
+            </tr>
+          </thead>
+          <tbody id="orderTableBody"></tbody>
+        </table>
+      </div>
+      <div id="pagination" class="pagination"></div>
+    </section>
+
+    <section class="section help">
+      <h2 data-i18n="order.help.title">如何使用订单分析？</h2>
+      <p data-i18n="order.help.body">从店铺后台导出订单CSV，系统会自动识别寄样（0元无支付方式）、匹配产品名、支持多条件筛选。点击任意订单可查看完整63个字段详情。</p>
+    </section>
+  </main>
+
+  <button id="backToTop" class="back-to-top" aria-label="回到顶部">↑</button>
+  <footer class="footer" data-i18n="order.footer">CusCus订单分析</footer>
+
+  <!-- Order detail drawer -->
+  <div id="orderDrawer" class="drawer">
+    <div class="drawer-overlay"></div>
+    <div class="drawer-panel">
+      <div class="drawer-header">
+        <h3 data-i18n="order.drawer.title">订单详情</h3>
+        <button class="drawer-close" aria-label="关闭">&times;</button>
+      </div>
+      <div class="drawer-body" id="drawerBody"></div>
+    </div>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script src="order.js"></script>
+</body>
+</html>

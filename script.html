@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title data-i18n="script.title">CusCus脚本生成器</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="script-gen.css" />
+</head>
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <main class="app">
+    <nav class="top-nav">
+      <div class="brand" data-i18n="common.brand">CusCus工作台</div>
+      <div class="nav-links">
+        <a href="index.html" data-i18n="common.nav.home">导航页</a>
+        <a href="gmv.html" data-i18n="common.nav.gmv">GMV MAX分析</a>
+        <a href="video.html" data-i18n="common.nav.video">视频看板</a>
+      </div>
+      <div class="lang-switch">
+        <button class="ghost" data-lang="zh" data-i18n="common.lang.zh">中文</button>
+        <button class="ghost" data-lang="en" data-i18n="common.lang.en">English</button>
+      </div>
+    </nav>
+
+    <header class="hero" style="grid-template-columns:1fr">
+      <div>
+        <p class="eyebrow" data-i18n="script.eyebrow">脚本工厂 • 儿童护肤品</p>
+        <h1 data-i18n="script.h1">CusCus脚本生成器</h1>
+        <p class="sub" data-i18n="script.sub">选择产品、视频类型和时长，一键生成三语带货脚本，复制即用。</p>
+      </div>
+    </header>
+
+    <!-- Step 1: 选产品 -->
+    <section class="section">
+      <div class="section-header">
+        <h2 data-i18n="script.step1">① 选择产品</h2>
+        <button class="ghost" id="addProductBtn" data-i18n="script.add_product">+ 添加自定义产品</button>
+      </div>
+      <div class="product-grid" id="productGrid"></div>
+    </section>
+
+    <!-- Step 2: 视频类型 -->
+    <section class="section">
+      <div class="section-header"><h2 data-i18n="script.step2">② 视频类型</h2></div>
+      <div class="option-row" id="videoTypeRow"></div>
+    </section>
+
+    <!-- Step 3: 时长 -->
+    <section class="section">
+      <div class="section-header"><h2 data-i18n="script.step3">③ 视频时长</h2></div>
+      <div class="option-row" id="durationRow"></div>
+    </section>
+
+    <!-- Step 4: 自定义输入 -->
+    <section class="section">
+      <div class="section-header"><h2 data-i18n="script.step4">④ 补充信息（可选）</h2></div>
+      <div class="custom-inputs">
+        <div class="input-group">
+          <label data-i18n="script.promo_label">促销信息</label>
+          <input type="text" id="promoInput" class="search" data-i18n-placeholder="script.promo_placeholder" placeholder="如：满99减20 / 买一送一" />
+        </div>
+        <div class="input-group">
+          <label data-i18n="script.extra_label">额外卖点</label>
+          <input type="text" id="extraInput" class="search" data-i18n-placeholder="script.extra_placeholder" placeholder="如：明星同款 / 医生推荐" />
+        </div>
+        <div class="input-group">
+          <label data-i18n="script.hook_label">自定义Hook</label>
+          <input type="text" id="hookInput" class="search" data-i18n-placeholder="script.hook_placeholder" placeholder="留空则使用默认Hook" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Generate + Batch -->
+    <section class="section center" style="flex-direction:column;gap:16px;display:flex;align-items:center">
+      <button class="upload-btn gen-btn" id="generateBtn" data-i18n="script.generate">生成脚本</button>
+      <div class="batch-row">
+        <label data-i18n="script.batch_label" style="color:var(--muted);font-size:0.85rem">批量生成</label>
+        <input type="number" id="batchCount" class="search" value="5" min="1" max="30" style="width:60px;text-align:center" />
+        <label style="color:var(--muted);font-size:0.85rem" data-i18n="script.batch_unit">版</label>
+        <button class="ghost" id="batchExportBtn" data-i18n="script.batch_export">导出CSV</button>
+      </div>
+    </section>
+
+    <!-- Output -->
+    <section class="section" id="outputSection" style="display:none">
+      <div class="section-header">
+        <h2 data-i18n="script.output">生成结果</h2>
+        <div class="section-actions">
+          <div class="lang-tabs">
+            <button class="ghost tab-btn active" data-tab="zh">中文</button>
+            <button class="ghost tab-btn" data-tab="en">English</button>
+            <button class="ghost tab-btn" data-tab="id">Bahasa</button>
+          </div>
+        </div>
+      </div>
+      <div class="script-output-card">
+        <div class="script-meta" id="scriptMeta"></div>
+        <div class="script-body" id="scriptBody"></div>
+        <div class="script-actions">
+          <button class="ghost copy-btn" id="copyBtn" data-i18n="script.copy">复制脚本</button>
+          <button class="ghost" id="regenerateBtn" data-i18n="script.regenerate">换一版</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section class="section">
+      <div class="section-header">
+        <h2 data-i18n="script.history">生成记录</h2>
+        <span class="pill" data-i18n="script.history_pill">自动保存，最多50条</span>
+      </div>
+      <div class="history-panel" id="historyPanel"></div>
+    </section>
+
+    <!-- 产品卖点速查 -->
+    <section class="section">
+      <div class="section-header">
+        <h2 data-i18n="script.ref">产品卖点速查</h2>
+        <span class="pill" data-i18n="script.ref_pill">点击产品查看详情</span>
+      </div>
+      <div class="ref-card" id="refCard" style="display:none"></div>
+    </section>
+  </main>
+
+  <footer class="footer" data-i18n="script.footer">CusCus脚本生成器</footer>
+  <button class="back-to-top" id="btt" title="↑">↑</button>
+
+  <script src="i18n.js"></script>
+  <script src="script-gen.js"></script>
+</body>
+</html>
