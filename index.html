@@ -1,60 +1,183 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title data-i18n="index.title">CusCus工作台</title>
+  <meta name="author" content="Yann" />
+  <meta name="description" content="CusCus 品牌运营中台 · TikTok Shop 数据 / 视频 / 脚本 / 订单" />
+  <title data-i18n="index.title">CusCus 工作台</title>
+  <link rel="icon" type="image/png" href="assets/logo-vertical.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles-brand.css" />
 </head>
 <body>
-  <div class="bg-orb orb-1"></div>
-  <div class="bg-orb orb-2"></div>
-  <div class="bg-orb orb-3"></div>
+  <div class="page">
 
-  <main class="app">
-    <nav class="top-nav">
-      <div class="brand" data-i18n="common.brand">CusCus工作台</div>
-      <div class="lang-switch">
-        <button class="ghost" data-lang="zh" data-i18n="common.lang.zh">中文</button>
-        <button class="ghost" data-lang="en" data-i18n="common.lang.en">English</button>
-      </div>
-    </nav>
+    <!-- 顶部细条 -->
+    <div class="topbar">
+      <span class="left">
+        <span class="dot"></span>
+        <span>Brand · CusCus Workstation</span>
+      </span>
+      <span class="right">
+        <span>Shining Kids By CusCus</span>
+        <span class="sep">/</span>
+        <span>Children&rsquo;s Skin Care</span>
+        <span class="sep">/</span>
+        <span>v 2026</span>
+      </span>
+    </div>
 
-    <header class="hero">
-      <div>
-        <p class="eyebrow" data-i18n="index.eyebrow">选择模块</p>
-        <h1 data-i18n="index.h1">CusCus导航页</h1>
-        <p class="sub" data-i18n="index.sub">请选择要进入的功能模块。</p>
-      </div>
-    </header>
+    <!-- Hero：橙底 + 大黑 logo + 大标题 -->
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-top">
+          <span class="hero-eyebrow"><span class="pulse"></span><span data-i18n="index.hero.eyebrow">Welcome back · 品牌运营中台</span></span>
+          <div class="lang-switch">
+            <button class="active" data-lang="zh" data-i18n="common.lang.zh">中文</button>
+            <button data-lang="en" data-i18n="common.lang.en">English</button>
+          </div>
+        </div>
 
-    <section class="section">
-      <div class="landing-grid">
-        <a class="landing-card" href="gmv.html">
-          <h2 data-i18n="index.card.gmv.title">CusCus GMV MAX分析看台</h2>
-          <p data-i18n="index.card.gmv.desc">导入 GMV MAX 报表，生成关键指标、趋势、聚合与优化建议。</p>
-        </a>
-        <a class="landing-card" href="video.html">
-          <h2 data-i18n="index.card.video.title">CusCus视频看板</h2>
-          <p data-i18n="index.card.video.desc">导入 Video List 表格，自动解析视频链接与缩略图，便于互动。</p>
-        </a>
-        <a class="landing-card" href="script.html">
-          <h2 data-i18n="index.card.script.title">CusCus脚本生成器</h2>
-          <p data-i18n="index.card.script.desc">选择产品和视频类型，一键生成三语带货脚本，复制即用。</p>
-        </a>
-        <a class="landing-card" href="order.html">
-          <h2 data-i18n="index.card.order.title">CusCus订单分析</h2>
-          <p data-i18n="index.card.order.desc">导入店铺订单CSV，识别寄样、产品映射、多维度筛选与导出。</p>
-        </a>
+        <div class="hero-logo">
+          <img src="assets/logo-horizontal-black.png" alt="CusCus" />
+        </div>
+
+        <h1>
+          Shining <span class="wink">Kids</span>,<br/>
+          <span class="pill">Bright</span> <span class="purple">Tools</span>.
+        </h1>
+
+        <p class="hero-sub">
+          <span data-i18n="index.hero.sub.pre">CusCus 品牌内部运营中台——</span><strong>TikTok Shop</strong><span data-i18n="index.hero.sub.post"> 的数据、视频、脚本与订单，都在这一张台子上。选一个模块进去，今天也要闪亮一点点 ✦</span>
+        </p>
+
+        <div class="chip-row">
+          <span class="chip"><span class="k">04</span> Modules</span>
+          <span class="chip c-purple">GMV · Video · Script · Order</span>
+          <span class="chip c-mint">Daily Ops</span>
+          <span class="chip c-sun">Shining Kids By CusCus</span>
+        </div>
       </div>
     </section>
-  </main>
 
-  <footer class="footer" data-i18n="index.footer">CusCus工作台 • 导航页</footer>
+    <!-- 滚动 slogan 条 -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee-track">
+        <span>Shining Kids By CusCus <span class="star">✦</span> We are cuscus <span class="heart">♥</span> Children&rsquo;s Skin Care <span class="star">✦</span> Clean · Safe · Natural <span class="heart">♥</span> Shining Kids By CusCus <span class="star">✦</span> We are cuscus <span class="heart">♥</span></span>
+        <span>Shining Kids By CusCus <span class="star">✦</span> We are cuscus <span class="heart">♥</span> Children&rsquo;s Skin Care <span class="star">✦</span> Clean · Safe · Natural <span class="heart">♥</span> Shining Kids By CusCus <span class="star">✦</span> We are cuscus <span class="heart">♥</span></span>
+      </div>
+    </div>
+
+    <!-- 模块标题 -->
+    <div class="section-head">
+      <div>
+        <div class="eyebrow" data-i18n="index.section.eyebrow">选择模块</div>
+        <h2><span data-i18n="index.section.h2.pre">选择</span> <em><span data-i18n="index.section.h2.em">一个</span></em> <span data-i18n="index.section.h2.post">模块进去</span></h2>
+      </div>
+      <div class="count">04 Tools</div>
+    </div>
+
+    <!-- 4 张模块卡 -->
+    <div class="grid">
+
+      <a class="tool t-orange" href="gmv.html">
+        <span class="blob blob-1"></span>
+        <span class="blob blob-2"></span>
+        <div class="tool-index">01<small>/04</small></div>
+        <div class="tool-tag">GMV MAX</div>
+        <h3 data-i18n="index.card.gmv.title">GMV MAX 分析看台</h3>
+        <p data-i18n="index.card.gmv.desc">导入 GMV MAX 报表，关键指标、趋势、聚合分析与优化建议一次看全。</p>
+        <div class="tool-foot">
+          <span class="tool-cta"><span data-i18n="index.card.gmv.cta">进入看板</span> <span class="arrow">→</span></span>
+          <span class="tool-meta">Analytics</span>
+        </div>
+      </a>
+
+      <a class="tool t-purple" href="video.html">
+        <span class="blob blob-1"></span>
+        <span class="blob blob-2"></span>
+        <div class="tool-index">02<small>/04</small></div>
+        <div class="tool-tag">Video</div>
+        <h3 data-i18n="index.card.video.title">视频看板</h3>
+        <p data-i18n="index.card.video.desc">导入 Video List 表格，自动解析链接与缩略图，一眼看完所有素材。</p>
+        <div class="tool-foot">
+          <span class="tool-cta"><span data-i18n="index.card.video.cta">进入看板</span> <span class="arrow">→</span></span>
+          <span class="tool-meta">Content</span>
+        </div>
+      </a>
+
+      <a class="tool t-mint" href="script.html">
+        <span class="blob blob-1"></span>
+        <span class="blob blob-2"></span>
+        <div class="tool-index">03<small>/04</small></div>
+        <div class="tool-tag">Script</div>
+        <h3 data-i18n="index.card.script.title">脚本生成器</h3>
+        <p data-i18n="index.card.script.desc">选择产品 + 视频类型，一键生成三语带货脚本，直接复制去拍。</p>
+        <div class="tool-foot">
+          <span class="tool-cta"><span data-i18n="index.card.script.cta">开始生成</span> <span class="arrow">→</span></span>
+          <span class="tool-meta">Generator</span>
+        </div>
+      </a>
+
+      <a class="tool t-peach" href="order.html">
+        <span class="blob blob-1"></span>
+        <span class="blob blob-2"></span>
+        <div class="tool-index">04<small>/04</small></div>
+        <div class="tool-tag">Order</div>
+        <h3 data-i18n="index.card.order.title">订单分析</h3>
+        <p data-i18n="index.card.order.desc">导入店铺订单 CSV，识别寄样、产品映射、多维筛选，一键导出。</p>
+        <div class="tool-foot">
+          <span class="tool-cta"><span data-i18n="index.card.order.cta">进入分析</span> <span class="arrow">→</span></span>
+          <span class="tool-meta">Fulfillment</span>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- 底部品牌锁定条 -->
+    <footer class="brand-foot">
+      <img src="assets/logo-horizontal-white.png" alt="CusCus" />
+      <span class="tag">SHINING KIDS · BRIGHT TOOLS</span>
+      <span class="copy">© 2026 by cuscus · built by Yann · Children&rsquo;s Skin Care</span>
+    </footer>
+
+  </div>
+
   <script src="i18n.js"></script>
+  <script>
+    // 打招呼 · hi there
+    (function () {
+      var title = '%c✦ Shining Kids By CusCus ✦';
+      var line  = '%c  design & build · Yann · 2026  ';
+      var hint  = '%cchildren’s skin care · internal workstation';
+      var s1 = [
+        'background:#FF7500',
+        'color:#0E0E0E',
+        'font:900 22px/1.6 Nunito,PingFang SC,sans-serif',
+        'padding:10px 18px',
+        'border-radius:999px',
+        'border:3px solid #0E0E0E'
+      ].join(';');
+      var s2 = [
+        'background:#0E0E0E',
+        'color:#FFD93D',
+        'font:800 13px/1.8 Nunito,PingFang SC,monospace',
+        'padding:6px 14px',
+        'border-radius:999px',
+        'letter-spacing:0.12em',
+        'margin-top:6px'
+      ].join(';');
+      var s3 = [
+        'color:#9A7BE8',
+        'font:600 11px/1.6 PingFang SC,sans-serif',
+        'letter-spacing:0.1em',
+        'margin-top:4px'
+      ].join(';');
+      console.log(title + '\n' + line + '\n' + hint, s1, s2, s3);
+    })();
+  </script>
 </body>
 </html>
-

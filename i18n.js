@@ -295,7 +295,19 @@
       "script.batch_unit": "版",
       "script.batch_export": "导出CSV",
 
-      "common.nav.script": "脚本生成器"
+      "common.nav.script": "脚本生成器",
+
+      "index.hero.eyebrow": "Welcome back · 品牌运营中台",
+      "index.hero.sub.pre": "CusCus 品牌内部运营中台——",
+      "index.hero.sub.post": " 的数据、视频、脚本与订单，都在这一张台子上。选一个模块进去，今天也要闪亮一点点 ✦",
+      "index.section.eyebrow": "选择模块",
+      "index.section.h2.pre": "选择",
+      "index.section.h2.em": "一个",
+      "index.section.h2.post": "模块进去",
+      "index.card.gmv.cta": "进入看板",
+      "index.card.video.cta": "进入看板",
+      "index.card.script.cta": "开始生成",
+      "index.card.order.cta": "进入分析"
     },
     en: {
       "common.brand": "CusCus Workspace",
@@ -317,6 +329,18 @@
       "index.card.order.title": "CusCus Order Analytics",
       "index.card.order.desc": "Import shop order CSV, identify samples, map products, multi-filter & export.",
       "index.footer": "CusCus Workspace • Home",
+
+      "index.hero.eyebrow": "Welcome back · Brand Ops Hub",
+      "index.hero.sub.pre": "CusCus brand ops hub — your ",
+      "index.hero.sub.post": " data, videos, scripts, and orders, all in one place. Pick a module and shine today ✦",
+      "index.section.eyebrow": "Choose a module",
+      "index.section.h2.pre": "Choose",
+      "index.section.h2.em": "a",
+      "index.section.h2.post": "Module",
+      "index.card.gmv.cta": "Enter",
+      "index.card.video.cta": "Enter",
+      "index.card.script.cta": "Start",
+      "index.card.order.cta": "Enter",
 
       "gmv.title": "CusCus GMV MAX Dashboard",
       "gmv.eyebrow": "GMV MAX • Ad analytics & recommendations",
@@ -631,6 +655,11 @@
 
     const titleEl = document.querySelector("title[data-i18n]");
     if (titleEl) titleEl.textContent = t(titleEl.getAttribute("data-i18n"));
+
+    // 更新语言按钮 active 状态
+    document.querySelectorAll("[data-lang]").forEach(btn => {
+      btn.classList.toggle("active", btn.getAttribute("data-lang") === lang);
+    });
 
     document.dispatchEvent(new CustomEvent("langchange"));
   }

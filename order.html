@@ -3,28 +3,30 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title data-i18n="order.title">CusCus订单分析</title>
+  <meta name="author" content="Yann" />
+  <title data-i18n="order.title">CusCus · 订单分析</title>
+  <link rel="icon" type="image/png" href="assets/logo-vertical.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+XiaoWei&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="order.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles-brand.css" />
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
-<body>
+<body data-tool="order">
   <div class="bg-orb orb-1"></div>
   <div class="bg-orb orb-2"></div>
   <div class="bg-orb orb-3"></div>
 
   <main class="app">
     <nav class="top-nav">
-      <div class="brand" data-i18n="common.brand">CusCus工作台</div>
+      <a class="brand" href="index.html" data-i18n="common.brand" aria-label="CusCus 工作台"></a>
       <div class="nav-links">
         <a href="index.html" data-i18n="common.nav.home">导航页</a>
-        <a href="gmv.html" data-i18n="common.nav.gmv">GMV MAX分析</a>
+        <a href="gmv.html" data-i18n="common.nav.gmv">GMV MAX</a>
         <a href="video.html" data-i18n="common.nav.video">视频看板</a>
-        <a href="order.html" data-i18n="common.nav.order">订单分析</a>
+        <a href="script.html" data-i18n="common.nav.script">脚本生成</a>
+        <a href="order.html" class="active" aria-current="page" data-i18n="common.nav.order">订单分析</a>
       </div>
       <div class="lang-switch">
         <button class="ghost" data-lang="zh" data-i18n="common.lang.zh">中文</button>
@@ -68,7 +70,7 @@
         <!-- 产品排行 -->
         <div class="agg-card agg-wide">
           <div class="agg-title" data-i18n="order.agg.product">产品销量排行</div>
-          <div class="table-wrap">
+          <div class="rank-table-wrap">
             <table class="data-table" id="productRankTable">
               <thead>
                 <tr>
@@ -87,52 +89,41 @@
         <!-- 省份排行 -->
         <div class="agg-card">
           <div class="agg-title" data-i18n="order.agg.province">省份 TOP 10</div>
-          <canvas id="provinceChart" height="260"></canvas>
+          <div class="chart-box chart-tall">
+            <canvas id="provinceChart"></canvas>
+          </div>
         </div>
 
         <!-- 订单状态分布 -->
         <div class="agg-card">
           <div class="agg-title" data-i18n="order.agg.status">订单状态分布</div>
-          <canvas id="statusChart" height="260"></canvas>
+          <div class="chart-box chart-tall">
+            <canvas id="statusChart"></canvas>
+          </div>
         </div>
       </div>
 
       <!-- 趋势图 -->
       <div class="agg-card agg-full" style="margin-top:16px">
         <div class="agg-title" data-i18n="order.agg.trend">每日订单趋势（付费订单）</div>
-        <canvas id="trendChart" height="100"></canvas>
+        <div class="chart-box chart-short">
+          <canvas id="trendChart"></canvas>
+        </div>
       </div>
 
-      <!-- 取消原因 + 寄样统计 -->
+      <!-- 取消原因 + 寄样统计（饼图） -->
       <div class="aggregate-grid" style="margin-top:16px">
         <div class="agg-card">
           <div class="agg-title" data-i18n="order.agg.cancel">取消原因分析</div>
-          <div class="table-wrap">
-            <table class="data-table" id="cancelTable">
-              <thead>
-                <tr>
-                  <th data-i18n="order.agg.cancel_reason">取消原因</th>
-                  <th data-i18n="order.agg.orders">订单数</th>
-                  <th data-i18n="order.agg.cancel_by">取消方</th>
-                </tr>
-              </thead>
-              <tbody id="cancelBody"></tbody>
-            </table>
+          <div class="chart-box chart-tall">
+            <canvas id="cancelChart"></canvas>
           </div>
         </div>
 
         <div class="agg-card">
           <div class="agg-title" data-i18n="order.agg.sample">寄样产品分布</div>
-          <div class="table-wrap">
-            <table class="data-table" id="sampleTable">
-              <thead>
-                <tr>
-                  <th data-i18n="order.agg.product_name">产品名</th>
-                  <th data-i18n="order.agg.sample_count">寄样数</th>
-                </tr>
-              </thead>
-              <tbody id="sampleBody"></tbody>
-            </table>
+          <div class="chart-box chart-tall">
+            <canvas id="sampleChart"></canvas>
           </div>
         </div>
       </div>

@@ -40,7 +40,6 @@ if (typeof XLSX === "undefined") {
   document.body.prepend(banner);
   console.error("XLSX library not loaded!");
 } else {
-  console.log("XLSX library loaded:", XLSX.version);
 }
 
 // State
@@ -149,19 +148,15 @@ fileInput.addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
-  console.log("File selected:", file.name, file.type, file.size);
 
   try {
     const text = await file.text();
-    console.log("File text length:", text.length, "First 200 chars:", text.substring(0, 200));
 
     const workbook = XLSX.read(text, { type: "string", raw: true });
-    console.log("Workbook sheets:", workbook.SheetNames);
 
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(sheet, { defval: "", raw: false });
 
-    console.log("Parsed rows:", rows.length);
 
     if (!rows.length) {
       alert("CSV文件为空");
@@ -192,7 +187,6 @@ fileInput.addEventListener("change", async (e) => {
       provinceFilter.appendChild(opt);
     });
 
-    console.log("Enriched orders sample:", allOrders[0]);
 
     renderKPIs();
     renderAggregates();
@@ -494,6 +488,56 @@ sortSelect.addEventListener("change", () => {
 
 const chartInstances = {};
 
+// 取消原因 英文→中文 映射
+const CANCEL_REASON_ZH = {
+  "Package delivery failed": "包裹配送失败",
+  "No longer needed": "不再需要",
+  "Customer overdue to pay": "买家逾期未付款",
+  "Need to change payment method": "需更换支付方式",
+  "High delivery costs": "运费过高",
+  "Need to change shipping address": "需更改收货地址",
+  "Better price available": "有更优价格",
+  "Out of stock": "缺货",
+  "Need to change color or size": "需更换颜色或尺寸",
+  "Seller not responsive to inquiries": "卖家未回复",
+  "Seller requesting order cancellation": "卖家申请取消",
+  "Payment method not available": "支付方式不可用",
+  "Product didn't arrive on time": "商品未按时送达"
+};
+
+const CANCEL_BY_ZH = {
+  "System": "系统",
+  "User": "买家",
+  "Seller": "卖家",
+  "Operator": "运营"
+};
+
+function translateCancelReason(en) {
+  const trimmed = (en || "").trim();
+  if (!trimmed) return "未填写";
+  return CANCEL_REASON_ZH[trimmed] || trimmed;
+}
+
+function translateCancelBy(en) {
+  const trimmed = (en || "").trim();
+  if (!trimmed) return "-";
+  return CANCEL_BY_ZH[trimmed] || trimmed;
+}
+
+// 饼图调色板（10 色循环）
+const PIE_PALETTE = [
+  "rgba(91, 208, 255, 0.85)",
+  "rgba(255, 180, 84, 0.85)",
+  "rgba(255, 111, 174, 0.85)",
+  "rgba(74, 222, 128, 0.85)",
+  "rgba(251, 191, 36, 0.85)",
+  "rgba(248, 113, 113, 0.85)",
+  "rgba(167, 139, 250, 0.85)",
+  "rgba(110, 231, 183, 0.85)",
+  "rgba(96, 165, 250, 0.85)",
+  "rgba(244, 114, 182, 0.85)"
+];
+
 function destroyChart(id) {
   if (chartInstances[id]) {
     chartInstances[id].destroy();
@@ -508,12 +552,19 @@ function renderAggregates() {
   const paid = allOrders.filter(o => !o._isSample);
   const samples = allOrders.filter(o => o._isSample);
 
+  // 表格类可以立即渲染
   renderProductRanking(paid);
-  renderProvinceChart(paid);
-  renderStatusChart(paid);
-  renderTrendChart(paid);
-  renderCancelTable(paid);
-  renderSampleTable(samples);
+
+  // 图表等 DOM 布局完成后再建（让容器拿到正确尺寸）
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      renderProvinceChart(paid);
+      renderStatusChart(paid);
+      renderTrendChart(paid);
+      renderCancelTable(paid);   // 现在是饼图
+      renderSampleTable(samples); // 现在是饼图
+    });
+  });
 }
 
 // 产品排行榜
@@ -521,10 +572,11 @@ function renderProductRanking(paid) {
   const map = {};
   paid.forEach(o => {
     const p = o._product || o["Seller SKU"] || "未知";
-    if (!map[p]) map[p] = { orders: 0, gmv: 0, canceled: 0 };
+    if (!map[p]) map[p] = { orders: 0, gmv: 0, canceled: 0, completed: 0 };
     map[p].orders++;
     map[p].gmv += parseFloat(o["Order Amount"]) || 0;
     if (o["Order Status"] === "Canceled") map[p].canceled++;
+    if (o["Order Status"] === "Completed") map[p].completed++;
   });
 
   const ranked = Object.entries(map)
@@ -536,8 +588,9 @@ function renderProductRanking(paid) {
   tbody.innerHTML = ranked.map(([name, d], i) => {
     const cancelRate = d.orders > 0 ? (d.canceled / d.orders * 100).toFixed(1) : "0.0";
     const rateClass = parseFloat(cancelRate) > 50 ? "danger" : parseFloat(cancelRate) > 30 ? "warning" : "ok";
+    const rowClass = parseFloat(cancelRate) > 50 ? "row-alert" : "";
     return `
-      <tr>
+      <tr class="${rowClass}">
         <td class="rank-num">${i + 1}</td>
         <td class="product-name">${name}</td>
         <td><strong>${d.orders}</strong></td>
@@ -545,6 +598,16 @@ function renderProductRanking(paid) {
         <td><span class="cancel-rate rate-${rateClass}">${cancelRate}%</span></td>
       </tr>`;
   }).join("");
+
+  // 在标题旁加产品数 badge
+  const titleEl = document.querySelector('#aggregateSection .agg-card.agg-wide .agg-title');
+  if (titleEl && !titleEl.querySelector('.count-badge')) {
+    const badge = document.createElement('span');
+    badge.className = 'count-badge';
+    titleEl.appendChild(badge);
+  }
+  const badge = titleEl?.querySelector('.count-badge');
+  if (badge) badge.textContent = ` · 共 ${ranked.length} 个产品`;
 }
 
 // 省份 TOP10 横向柱状图
@@ -554,7 +617,7 @@ function renderProvinceChart(paid) {
     const p = o["Province"] || "未知";
     map[p] = (map[p] || 0) + 1;
   });
-  const top10 = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const top10 = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 10).reverse(); // reverse 让最多的在顶部
 
   destroyChart("provinceChart");
   const ctx = document.getElementById("provinceChart");
@@ -576,10 +639,14 @@ function renderProvinceChart(paid) {
     options: {
       indexAxis: "y",
       responsive: true,
-      plugins: { legend: { display: false } },
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => `订单数: ${ctx.parsed.x}` } }
+      },
       scales: {
         x: { ticks: { color: "#9aa3b2" }, grid: { color: "rgba(255,255,255,0.06)" } },
-        y: { ticks: { color: "#f4f6fb" }, grid: { display: false } }
+        y: { ticks: { color: "#f4f6fb", font: { size: 11 } }, grid: { display: false } }
       }
     }
   });
@@ -594,14 +661,16 @@ function renderStatusChart(paid) {
   });
 
   const STATUS_COLORS = {
-    "Shipped":   "rgba(75, 192, 192, 0.8)",
-    "Completed": "rgba(74, 222, 128, 0.8)",
-    "Canceled":  "rgba(248, 113, 113, 0.8)",
-    "To ship":   "rgba(251, 191, 36, 0.8)",
-    "Unpaid":    "rgba(154, 163, 178, 0.8)"
+    "Shipped":   "rgba(75, 192, 192, 0.85)",
+    "Completed": "rgba(74, 222, 128, 0.85)",
+    "Canceled":  "rgba(248, 113, 113, 0.85)",
+    "To ship":   "rgba(251, 191, 36, 0.85)",
+    "Unpaid":    "rgba(154, 163, 178, 0.85)"
   };
 
-  const entries = Object.entries(map);
+  const entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((s, [, c]) => s + c, 0);
+
   destroyChart("statusChart");
   const ctx = document.getElementById("statusChart");
   if (!ctx) return;
@@ -612,21 +681,40 @@ function renderStatusChart(paid) {
       labels: entries.map(([s]) => s),
       datasets: [{
         data: entries.map(([, c]) => c),
-        backgroundColor: entries.map(([s]) => STATUS_COLORS[s] || "rgba(154,163,178,0.8)"),
+        backgroundColor: entries.map(([s]) => STATUS_COLORS[s] || "rgba(154,163,178,0.85)"),
         borderWidth: 2,
         borderColor: "#151824"
       }]
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
+      cutout: "60%",
       plugins: {
         legend: {
           position: "bottom",
-          labels: { color: "#9aa3b2", padding: 12, font: { size: 12 } }
+          labels: { color: "#9aa3b2", padding: 10, font: { size: 12 }, boxWidth: 14 }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const v = ctx.parsed;
+              const pct = total ? ((v / total) * 100).toFixed(1) : 0;
+              return `${ctx.label}: ${v} (${pct}%)`;
+            }
+          }
         }
       }
     }
   });
+}
+
+// Local-date helper（避开 UTC 时区错位）
+function toLocalDateKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
 // 每日趋势折线图
@@ -634,16 +722,17 @@ function renderTrendChart(paid) {
   const map = {};
   paid.forEach(o => {
     if (!o._date) return;
-    const key = o._date.toISOString().slice(0, 10);
+    const key = toLocalDateKey(o._date);
     if (!map[key]) map[key] = { orders: 0, gmv: 0 };
     map[key].orders++;
     map[key].gmv += parseFloat(o["Order Amount"]) || 0;
   });
 
   const sorted = Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]));
-  const labels = sorted.map(([d]) => d);
+  const labels = sorted.map(([d]) => d.slice(5)); // MM-DD
   const orderCounts = sorted.map(([, v]) => v.orders);
-  const gmvValues = sorted.map(([, v]) => Math.round(v.gmv / 1000)); // in K IDR
+  // 印尼习惯 juta（百万），1 juta = 1,000,000 IDR
+  const gmvValues = sorted.map(([, v]) => +(v.gmv / 1_000_000).toFixed(2));
 
   destroyChart("trendChart");
   const ctx = document.getElementById("trendChart");
@@ -658,39 +747,56 @@ function renderTrendChart(paid) {
           label: "订单数",
           data: orderCounts,
           borderColor: "rgba(91, 208, 255, 1)",
-          backgroundColor: "rgba(91, 208, 255, 0.1)",
+          backgroundColor: "rgba(91, 208, 255, 0.12)",
           fill: true,
           tension: 0.3,
           yAxisID: "yOrders",
-          pointRadius: 3
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          borderWidth: 2
         },
         {
-          label: "GMV (千IDR)",
+          label: "GMV (juta IDR)",
           data: gmvValues,
           borderColor: "rgba(255, 180, 84, 1)",
-          backgroundColor: "rgba(255, 180, 84, 0.08)",
+          backgroundColor: "rgba(255, 180, 84, 0.1)",
           fill: true,
           tension: 0.3,
           yAxisID: "yGmv",
-          pointRadius: 3
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          borderWidth: 2
         }
       ]
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
       plugins: {
-        legend: { labels: { color: "#9aa3b2" } }
+        legend: { labels: { color: "#9aa3b2", usePointStyle: true } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              if (ctx.dataset.yAxisID === "yGmv") {
+                return `GMV: ${ctx.parsed.y} juta (${(ctx.parsed.y * 1_000_000).toLocaleString("zh-CN")} IDR)`;
+              }
+              return `订单数: ${ctx.parsed.y}`;
+            }
+          }
+        }
       },
       scales: {
-        x: { ticks: { color: "#9aa3b2", maxTicksLimit: 20 }, grid: { color: "rgba(255,255,255,0.05)" } },
+        x: { ticks: { color: "#9aa3b2", maxTicksLimit: 16, font: { size: 11 } }, grid: { color: "rgba(255,255,255,0.05)" } },
         yOrders: {
-          type: "linear", position: "left",
+          type: "linear", position: "left", beginAtZero: true,
+          title: { display: true, text: "订单数", color: "rgba(91,208,255,0.9)", font: { size: 11 } },
           ticks: { color: "rgba(91,208,255,0.9)" },
           grid: { color: "rgba(255,255,255,0.05)" }
         },
         yGmv: {
-          type: "linear", position: "right",
+          type: "linear", position: "right", beginAtZero: true,
+          title: { display: true, text: "GMV (juta)", color: "rgba(255,180,84,0.9)", font: { size: 11 } },
           ticks: { color: "rgba(255,180,84,0.9)" },
           grid: { display: false }
         }
@@ -699,37 +805,92 @@ function renderTrendChart(paid) {
   });
 }
 
-// 取消原因表
+// 通用饼图渲染器
+function renderPieChart(canvasId, entries, emptyText) {
+  destroyChart(canvasId);
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return;
+
+  if (!entries.length) {
+    // 显示空态
+    const c = ctx.getContext("2d");
+    c.clearRect(0, 0, ctx.width, ctx.height);
+    c.fillStyle = "#9aa3b2";
+    c.font = "14px system-ui";
+    c.textAlign = "center";
+    c.fillText(emptyText || "暂无数据", ctx.width / 2, ctx.height / 2);
+    return;
+  }
+
+  const total = entries.reduce((s, [, c]) => s + c, 0);
+
+  chartInstances[canvasId] = new Chart(ctx, {
+    type: "pie",
+    data: {
+      labels: entries.map(([k]) => k),
+      datasets: [{
+        data: entries.map(([, v]) => v),
+        backgroundColor: entries.map((_, i) => PIE_PALETTE[i % PIE_PALETTE.length]),
+        borderWidth: 2,
+        borderColor: "#151824"
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: "right",
+          labels: {
+            color: "#9aa3b2",
+            padding: 8,
+            font: { size: 11 },
+            boxWidth: 12,
+            generateLabels: (chart) => {
+              const data = chart.data;
+              return data.labels.map((label, i) => {
+                const val = data.datasets[0].data[i];
+                const pct = total ? ((val / total) * 100).toFixed(1) : 0;
+                // 标签太长就截断
+                const shortLabel = label.length > 18 ? label.slice(0, 17) + "…" : label;
+                return {
+                  text: `${shortLabel}  ${pct}%`,
+                  fillStyle: data.datasets[0].backgroundColor[i],
+                  strokeStyle: data.datasets[0].backgroundColor[i],
+                  index: i
+                };
+              });
+            }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const v = ctx.parsed;
+              const pct = total ? ((v / total) * 100).toFixed(1) : 0;
+              return `${ctx.label}: ${v} (${pct}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+// 取消原因饼图（中文）
 function renderCancelTable(paid) {
   const canceled = paid.filter(o => o["Order Status"] === "Canceled");
   const map = {};
   canceled.forEach(o => {
-    const reason = (o["Cancel Reason"] || "").trim() || "未填写";
-    const by = (o["Cancel By"] || "").trim() || "-";
-    const key = `${reason}||${by}`;
-    map[key] = (map[key] || 0) + 1;
+    const reason = translateCancelReason(o["Cancel Reason"]);
+    map[reason] = (map[reason] || 0) + 1;
   });
 
   const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]);
-  const tbody = document.getElementById("cancelBody");
-  if (!tbody) return;
-
-  if (!sorted.length) {
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted)">暂无取消订单</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = sorted.map(([key, cnt]) => {
-    const [reason, by] = key.split("||");
-    return `<tr>
-      <td>${reason}</td>
-      <td><strong>${cnt}</strong></td>
-      <td>${by}</td>
-    </tr>`;
-  }).join("");
+  renderPieChart("cancelChart", sorted, "暂无取消订单");
 }
 
-// 寄样产品分布表
+// 寄样产品分布饼图
 function renderSampleTable(samples) {
   const map = {};
   samples.forEach(o => {
@@ -738,19 +899,7 @@ function renderSampleTable(samples) {
   });
 
   const sorted = Object.entries(map).sort((a, b) => b[1] - a[1]);
-  const tbody = document.getElementById("sampleBody");
-  if (!tbody) return;
-
-  if (!sorted.length) {
-    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center;color:var(--muted)">暂无寄样订单</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = sorted.map(([name, cnt]) => `
-    <tr>
-      <td class="product-name">${name}</td>
-      <td><strong>${cnt}</strong></td>
-    </tr>`).join("");
+  renderPieChart("sampleChart", sorted, "暂无寄样订单");
 }
 
 // Back to top button
