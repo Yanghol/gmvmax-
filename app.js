@@ -50,6 +50,40 @@ const tt = (key, vars) => {
   return text;
 };
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatLocalDate(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "-";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function setThumbImage(container, src, alt) {
+  const img = document.createElement("img");
+  img.src = src;
+  img.alt = alt;
+  container.replaceChildren(img);
+}
+
+function normalizeExternalUrl(value) {
+  if (!value) return "";
+  try {
+    const url = new URL(String(value).trim(), window.location.href);
+    return /^https?:$/i.test(url.protocol) ? url.href : "";
+  } catch (err) {
+    return "";
+  }
+}
+
 if (typeof XLSX === "undefined") {
   showLibWarning(tt("lib.xlsx"));
 }
@@ -224,11 +258,11 @@ function buildTiktokUrl(row) {
   if (!id || !account) return "";
   account = String(account).replace(/^@/, "").trim();
   if (!account) return "";
-  return `https://www.tiktok.com/@${account}/video/${id}`;
+  return `https://www.tiktok.com/@${encodeURIComponent(account)}/video/${encodeURIComponent(String(id).trim())}`;
 }
 
 function formatDay(date) {
-  return date.toISOString().slice(0, 10);
+  return formatLocalDate(date);
 }
 
 function formatMonth(date) {
@@ -542,7 +576,7 @@ function renderAggregateTable(tableEl, data) {
 
   tbody.innerHTML = data.slice(0, 10).map(row => `
     <tr>
-      <td>${row.name}</td>
+      <td>${escapeHtml(row.name)}</td>
       <td>${fmtNumber(row.count)}</td>
       <td>${fmtCurrency(row.cost)}</td>
       <td>${fmtCurrency(row.revenue)}</td>
@@ -624,8 +658,8 @@ function renderRecommendations(data) {
 
   recommendationsEl.innerHTML = recs.map(rec => `
     <div class="rec-card">
-      <h3>${rec.title}</h3>
-      ${rec.list.length ? `<ul>${rec.list.map(item => `<li>${item}</li>`).join("")}</ul>` : `<p>${rec.fallback}</p>`}
+      <h3>${escapeHtml(rec.title)}</h3>
+      ${rec.list.length ? `<ul>${rec.list.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : `<p>${escapeHtml(rec.fallback)}</p>`}
     </div>
   `).join("");
 }
@@ -694,8 +728,8 @@ function renderGmvVideoCards(data) {
 
   gmvVideoGrid.innerHTML = visible.map(row => {
     const url = buildTiktokUrl(row);
-    const title = row["视频标题"] || "未命名视频";
-    const account = row["TikTok 账号"] || "-";
+    const title = escapeHtml(row["视频标题"] || "未命名视频");
+    const account = escapeHtml(row["TikTok 账号"] || "-");
     const roi = (row["ROI"] || 0).toFixed(2);
     return `
       <article class="video-card">
@@ -704,7 +738,7 @@ function renderGmvVideoCards(data) {
       </div>
         <div class="video-body">
           <div class="video-title">${title}</div>
-          <div class="video-meta">@${account} • ${row.__date ? formatDay(row.__date) : "-"}</div>
+          <div class="video-meta">@${account} • ${formatDay(row.__date)}</div>
           <div class="stat-row">
             <div class="stat"><span>${tt("label.gmv")}</span><strong>${fmtMoney(row["总收入"] || 0, gmvBaseCurrency)}</strong></div>
             <div class="stat"><span>${tt("label.cost")}</span><strong>${fmtMoney(row["成本"] || 0, gmvBaseCurrency)}</strong></div>
@@ -731,7 +765,7 @@ function renderGmvVideoCards(data) {
       const url = container.getAttribute("data-url");
       const thumb = await fetchVideoThumbnail(url);
       const finalThumb = thumb || videoThumbPlaceholder;
-      container.innerHTML = `<img src="${finalThumb}" alt="视频缩略图" />`;
+      setThumbImage(container, finalThumb, "视频缩略图");
     });
   }, { rootMargin: "200px" });
   thumbs.forEach(thumb => observer.observe(thumb));
@@ -771,8 +805,8 @@ function renderRecentGmvVideos(data) {
 
   recentGmvGrid.innerHTML = visible.map(row => {
     const url = buildTiktokUrl(row);
-    const title = row["视频标题"] || "未命名视频";
-    const account = row["TikTok 账号"] || "-";
+    const title = escapeHtml(row["视频标题"] || "未命名视频");
+    const account = escapeHtml(row["TikTok 账号"] || "-");
     const roi = (row["ROI"] || 0).toFixed(2);
     return `
       <article class="video-card">
@@ -781,7 +815,7 @@ function renderRecentGmvVideos(data) {
       </div>
         <div class="video-body">
           <div class="video-title">${title}</div>
-          <div class="video-meta">@${account} • ${row.__date ? formatDay(row.__date) : "-"}</div>
+          <div class="video-meta">@${account} • ${formatDay(row.__date)}</div>
           <div class="stat-row">
             <div class="stat"><span>${tt("label.gmv")}</span><strong>${fmtMoney(row["总收入"] || 0, gmvBaseCurrency)}</strong></div>
             <div class="stat"><span>${tt("label.cost")}</span><strong>${fmtMoney(row["成本"] || 0, gmvBaseCurrency)}</strong></div>
@@ -808,7 +842,7 @@ function renderRecentGmvVideos(data) {
       const url = container.getAttribute("data-url");
       const thumb = await fetchVideoThumbnail(url);
       const finalThumb = thumb || videoThumbPlaceholder;
-      container.innerHTML = `<img src="${finalThumb}" alt="视频缩略图" />`;
+      setThumbImage(container, finalThumb, "视频缩略图");
     });
   }, { rootMargin: "200px" });
   thumbs.forEach(thumb => observer.observe(thumb));
@@ -894,8 +928,8 @@ function renderAlerts(data) {
 
   const alertHtml = alertCards.map(card => `
     <div class="rec-card">
-      <h3>${card.title}</h3>
-      ${card.list.length ? `<ul>${card.list.map(item => `<li>${item}</li>`).join("")}</ul>` : `<p>${card.fallback}</p>`}
+      <h3>${escapeHtml(card.title)}</h3>
+      ${card.list.length ? `<ul>${card.list.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : `<p>${escapeHtml(card.fallback)}</p>`}
     </div>
   `).join("");
 
@@ -1124,7 +1158,7 @@ function parseVideoSheet(data) {
       obj[key] = row[idx] ?? "";
     });
     obj.__name = obj[videoFields.name] || "";
-    obj.__link = obj[videoFields.link] || "";
+    obj.__link = normalizeExternalUrl(obj[videoFields.link]);
     obj.__date = parseDate(obj[videoFields.date]);
     obj.__creator = obj[videoFields.creator] || "";
     obj.__gmv = toNumber(obj[videoFields.gmv]);
@@ -1192,12 +1226,12 @@ function renderVideoCards(data) {
   const visible = data.slice(start, end);
   videoGrid.innerHTML = visible.map((row, idx) => `
     <article class="video-card" data-index="${idx}">
-      <div class="thumb" data-url="${row.__link}">
+      <div class="thumb" data-url="${escapeHtml(row.__link)}">
         <span>${tt("thumb.loading")}</span>
       </div>
       <div class="video-body">
-        <div class="video-title">${row.__name || "未命名视频"}</div>
-        <div class="video-meta">@${row.__creator || "-"} • ${row.__date ? row.__date.toISOString().slice(0, 10) : "-"}</div>
+        <div class="video-title">${escapeHtml(row.__name || "未命名视频")}</div>
+        <div class="video-meta">@${escapeHtml(row.__creator || "-")} • ${formatDay(row.__date)}</div>
         <div class="stat-row">
           <div class="stat"><span>${tt("label.gmv")}</span><strong>${fmtMoney(row.__gmv, "IDR")}</strong></div>
           <div class="stat"><span>${tt("label.impressions")}</span><strong>${fmtNumber(row.__impressions)}</strong></div>
@@ -1205,8 +1239,8 @@ function renderVideoCards(data) {
           <div class="stat"><span>${tt("label.comments")}</span><strong>${fmtNumber(row.__comments)}</strong></div>
         </div>
         <div class="video-actions">
-          <a href="${row.__link}" target="_blank" rel="noopener">${tt("action.open")}</a>
-          <button class="copy-btn" data-link="${row.__link}">${tt("action.copy")}</button>
+          ${row.__link ? `<a href="${escapeHtml(row.__link)}" target="_blank" rel="noopener">${tt("action.open")}</a>` : `<span class="page-meta">${tt("action.no_link")}</span>`}
+          ${row.__link ? `<button class="copy-btn" data-link="${escapeHtml(row.__link)}">${tt("action.copy")}</button>` : ``}
         </div>
       </div>
     </article>
@@ -1227,7 +1261,7 @@ function setupVideoThumbObserver() {
       const url = container.getAttribute("data-url");
       const thumb = await fetchVideoThumbnail(url);
       const finalThumb = thumb || videoThumbPlaceholder;
-      container.innerHTML = `<img src="${finalThumb}" alt="视频缩略图" />`;
+      setThumbImage(container, finalThumb, "视频缩略图");
     });
   }, { rootMargin: "200px" });
 

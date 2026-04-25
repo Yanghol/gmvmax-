@@ -32,6 +32,23 @@ const tt = (key, vars) => {
   return text;
 };
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatLocalDateKey(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 // Check dependencies
 if (typeof XLSX === "undefined") {
   const banner = document.createElement("div");
@@ -261,8 +278,15 @@ function applyFilters() {
 
     if (product && !o._product.toLowerCase().includes(product)) return false;
 
-    if (from && o._date && o._date < from) return false;
-    if (to && o._date && o._date > to) return false;
+    if (from || to) {
+      if (!(o._date instanceof Date) || Number.isNaN(o._date.getTime())) return false;
+      if (from && o._date < from) return false;
+      if (to) {
+        const inclusiveTo = new Date(to);
+        inclusiveTo.setHours(23, 59, 59, 999);
+        if (o._date > inclusiveTo) return false;
+      }
+    }
 
     return true;
   });
@@ -305,15 +329,15 @@ function renderTable() {
 
   orderTableBody.innerHTML = page.map((o, idx) => `
     <tr data-index="${start + idx}">
-      <td class="order-id">${o["Order ID"] || ""}</td>
+      <td class="order-id">${escapeHtml(o["Order ID"] || "")}</td>
       <td>${formatDate(o._date)}</td>
-      <td class="product-name">${o._product}</td>
-      <td class="sku-cell">${o["Seller SKU"] || ""}</td>
-      <td>${o["Quantity"] || ""}</td>
+      <td class="product-name">${escapeHtml(o._product)}</td>
+      <td class="sku-cell">${escapeHtml(o["Seller SKU"] || "")}</td>
+      <td>${escapeHtml(o["Quantity"] || "")}</td>
       <td class="amount-cell">${formatCurrency(parseFloat(o["Order Amount"]) || 0)}</td>
-      <td><span class="status-badge status-${(o["Order Status"] || "").toLowerCase().replace(/\s/g, "-")}">${o["Order Status"] || ""}</span></td>
-      <td>${o["Purchase Channel"] || ""}</td>
-      <td>${o["Province"] || ""}</td>
+      <td><span class="status-badge status-${escapeHtml((o["Order Status"] || "").toLowerCase().replace(/\s/g, "-"))}">${escapeHtml(o["Order Status"] || "")}</span></td>
+      <td>${escapeHtml(o["Purchase Channel"] || "")}</td>
+      <td>${escapeHtml(o["Province"] || "")}</td>
       <td>${o._isSample ? '<span class="sample-badge">寄样</span>' : ""}</td>
     </tr>
   `).join("");
@@ -406,10 +430,10 @@ function showOrderDetail(order) {
 
   drawerBody.innerHTML = fields.map(f => {
     const value = order[f.key];
-    const display = f.format ? f.format(value) : (value || "-");
+    const display = f.format ? f.format(value) : escapeHtml(value || "-");
     return `
       <div class="detail-row">
-        <div class="detail-label">${f.label}</div>
+        <div class="detail-label">${escapeHtml(f.label)}</div>
         <div class="detail-value">${display}</div>
       </div>
     `;
@@ -464,7 +488,7 @@ exportBtn.addEventListener("click", () => {
   const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   link.href = URL.createObjectURL(blob);
-  link.download = `订单筛选结果_${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `订单筛选结果_${formatLocalDateKey(new Date())}.csv`;
   link.click();
 });
 
@@ -592,7 +616,7 @@ function renderProductRanking(paid) {
     return `
       <tr class="${rowClass}">
         <td class="rank-num">${i + 1}</td>
-        <td class="product-name">${name}</td>
+        <td class="product-name">${escapeHtml(name)}</td>
         <td><strong>${d.orders}</strong></td>
         <td>${formatCurrency(d.gmv)}</td>
         <td><span class="cancel-rate rate-${rateClass}">${cancelRate}%</span></td>
@@ -645,8 +669,8 @@ function renderProvinceChart(paid) {
         tooltip: { callbacks: { label: (ctx) => `订单数: ${ctx.parsed.x}` } }
       },
       scales: {
-        x: { ticks: { color: "#9aa3b2" }, grid: { color: "rgba(255,255,255,0.06)" } },
-        y: { ticks: { color: "#f4f6fb", font: { size: 11 } }, grid: { display: false } }
+        x: { ticks: { color: "#1f2937" }, grid: { color: "rgba(15,23,42,0.12)" } },
+        y: { ticks: { color: "#111111", font: { size: 11 } }, grid: { display: false } }
       }
     }
   });
