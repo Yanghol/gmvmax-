@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="author" content="Yann" />
+  <meta name="author" content="杨浩" />
   <title data-i18n="gmv.title">CusCus · GMV MAX 分析看台</title>
   <link rel="icon" type="image/png" href="assets/logo-vertical.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,14 +28,16 @@
         <a href="script.html" data-i18n="common.nav.script">脚本生成</a>
         <a href="order.html" data-i18n="common.nav.order">订单分析</a>
       </div>
-      <div class="lang-switch">
-        <button class="ghost" data-lang="zh" data-i18n="common.lang.zh">中文</button>
-        <button class="ghost" data-lang="en" data-i18n="common.lang.en">English</button>
-      </div>
-      <div class="currency-switch">
-        <span class="currency-label" data-i18n="fx.currency">货币</span>
-        <button class="ghost" data-currency="IDR">IDR</button>
-        <button class="ghost" data-currency="CNY">CNY</button>
+      <div class="nav-controls">
+        <div class="lang-switch">
+          <button class="ghost" data-lang="zh" data-i18n="common.lang.zh">中文</button>
+          <button class="ghost" data-lang="en" data-i18n="common.lang.en">English</button>
+        </div>
+        <div class="currency-switch">
+          <span class="currency-label" data-i18n="fx.currency">货币</span>
+          <button class="ghost" data-currency="IDR">IDR</button>
+          <button class="ghost" data-currency="CNY">CNY</button>
+        </div>
       </div>
     </nav>
 
@@ -195,6 +197,36 @@
 
   <script src="i18n.js"></script>
   <script src="app.js"></script>
+  <script>
+    (function () {
+      var title = '%c✦ Shining Kids By CusCus ✦';
+      var line  = '%c  design & build · 杨浩 · 2026  ';
+      var hint  = '%cchildren’s skin care · internal workstation';
+      var s1 = [
+        'background:#FF7500',
+        'color:#0E0E0E',
+        'font:900 22px/1.6 Nunito,PingFang SC,sans-serif',
+        'padding:10px 18px',
+        'border-radius:999px',
+        'border:3px solid #0E0E0E'
+      ].join(';');
+      var s2 = [
+        'background:#0E0E0E',
+        'color:#FFD93D',
+        'font:800 13px/1.8 Nunito,PingFang SC,monospace',
+        'padding:6px 14px',
+        'border-radius:999px',
+        'letter-spacing:0.12em',
+        'margin-top:6px'
+      ].join(';');
+      var s3 = [
+        'color:#9A7BE8',
+        'font:600 11px/1.6 PingFang SC,sans-serif',
+        'letter-spacing:0.1em',
+        'margin-top:4px'
+      ].join(';');
+      console.log(title + '\n' + line + '\n' + hint, s1, s2, s3);
+    })();
+  </script>
 </body>
 </html>
-

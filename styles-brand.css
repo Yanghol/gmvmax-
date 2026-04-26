@@ -2,7 +2,7 @@
    CusCus 工作台 · Brand V3.1（playful + bold）
    儿童护肤 × 运营中台 的 tone：活泼 / 饱和 / 大字 / 有温度
    ------------------------------------------------------------
-   design & build · Yann · 2026
+   design & build · 杨浩 · 2026
    ============================================================ */
 
 :root {
@@ -610,6 +610,12 @@ button { font-family: inherit; cursor: pointer; }
   flex: 1;
   flex-wrap: wrap;
 }
+.top-nav .nav-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
 .top-nav .nav-links a {
   display: inline-flex;
   align-items: center;
@@ -659,6 +665,13 @@ button { font-family: inherit; cursor: pointer; }
 }
 .top-nav .ghost:hover { color: var(--ink); }
 .top-nav .ghost.active { background: var(--ink); color: var(--sun); }
+
+@media (max-width: 960px) {
+  .top-nav .nav-controls {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
 
 /* ───── 工具页 Hero ───── */
 .app > .hero {
@@ -1603,3 +1616,418 @@ body[data-tool="order"]  .app > .hero::after  { background: var(--sun); }
   .top-nav .brand::before { width: 100px; height: 26px; }
   .top-nav { border-radius: 18px; }
 }
+
+/* ============================================================
+   订单分析 · 双模式切换 tabs（店铺 / 达人）
+   ============================================================ */
+
+.mode-switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--paper);
+  border: 2.5px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 5px 5px 0 var(--line);
+  margin: 18px 0;
+}
+
+.mode-tabs {
+  display: inline-flex;
+  gap: 0;
+  padding: 4px;
+  background: var(--bg-soft, #FFE4C7);
+  border: 2px solid var(--line);
+  border-radius: 999px;
+}
+
+.mode-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink-3);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 8px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all .2s ease;
+}
+
+.mode-tab:hover { color: var(--ink); }
+
+.mode-tab.active {
+  background: var(--ink);
+  color: var(--sun);
+  box-shadow: 0 2px 0 var(--ink);
+}
+
+.mode-tab .badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--orange);
+  color: var(--ink);
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.mode-tab.active .badge { background: var(--sun); color: var(--ink); }
+
+.mode-info {
+  flex: 1;
+  min-width: 240px;
+  font-size: 13px;
+  color: var(--ink-2);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.mode-info .ki {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--orange-deep);
+  font-weight: 800;
+}
+
+/* 自动识别提示条 */
+.mode-toast {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 12px 16px;
+  background: var(--sun-soft, #FFF1B3);
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.mode-toast.show { display: flex; }
+.mode-toast .icon {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  background: var(--ink);
+  color: var(--sun);
+  border-radius: 50%;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 900;
+}
+.mode-toast .close {
+  margin-left: auto;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--ink-3);
+  padding: 0 4px;
+}
+.mode-toast .close:hover { color: var(--ink); }
+
+/* 模式内容显示控制（hidden 属性自带 display:none，但 flex 容器里要更稳） */
+[data-mode-content][hidden] { display: none !important; }
+
+/* 内容类型徽章（达人订单专用） */
+.content-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.content-type-Video      { background: var(--purple-soft); color: var(--purple-deep); }
+.content-type-Showcase   { background: var(--mint-soft);   color: var(--mint-deep); }
+.content-type-Livestream { background: var(--orange-soft); color: var(--orange-deep); }
+.content-type-External   { background: var(--sun-soft);    color: var(--sun-deep); }
+.content-type-Other      { background: #EEE;               color: var(--ink-3); }
+
+.commission-rate {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: var(--purple-deep);
+}
+
+.creator-name {
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 720px) {
+  .mode-switch { padding: 12px 14px; gap: 10px; }
+  .mode-tabs { width: 100%; justify-content: stretch; }
+  .mode-tab { flex: 1; justify-content: center; padding: 10px 14px; }
+  .mode-info { font-size: 12px; min-width: 0; }
+}
+
+/* ============================================================
+   订单分析 · 工具类（badges / 排名 / 状态色等）
+   ============================================================ */
+
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: var(--bg-soft, #FFE4C7);
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+}
+.status-shipped   { background: var(--mint-soft);   color: var(--mint-deep); }
+.status-completed { background: #C8F2D8;            color: #1F8A55; }
+.status-canceled  { background: var(--peach-soft);  color: var(--peach-deep); }
+.status-to-ship   { background: var(--sun-soft);    color: var(--sun-deep); }
+.status-unpaid    { background: #EEE;               color: var(--ink-3); }
+
+.sample-badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: var(--purple-soft);
+  color: var(--purple-deep);
+  border: 1.5px solid var(--purple-deep);
+}
+
+.rank-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: var(--orange-cream);
+  color: var(--ink);
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+}
+.data-table tbody tr:nth-child(1) .rank-num { background: var(--sun);     color: var(--ink); }
+.data-table tbody tr:nth-child(2) .rank-num { background: var(--mint);    color: var(--ink); }
+.data-table tbody tr:nth-child(3) .rank-num { background: var(--peach);   color: var(--ink); }
+
+.row-alert td { background: rgba(242, 122, 92, 0.08); }
+
+.cancel-rate.rate-ok      { color: var(--mint-deep); }
+.cancel-rate.rate-warning { color: var(--sun-deep); }
+.cancel-rate.rate-danger  { color: var(--peach-deep); }
+
+.count-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  margin-left: 6px;
+}
+
+.order-id, .sku-cell {
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-2);
+  letter-spacing: 0;
+}
+
+.product-name {
+  font-weight: 600;
+  color: var(--ink);
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-group-title {
+  margin: 18px 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--ink);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.detail-group-title:first-child { margin-top: 0; }
+
+.lib-warning {
+  margin: 12px;
+  padding: 12px 16px;
+  background: var(--peach-soft);
+  border: 2px solid var(--peach-deep);
+  border-radius: 12px;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+/* ============================================================
+   达人订单 · 内容类型分解卡片
+   ============================================================ */
+
+.ct-breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.ct-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 20px 16px;
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 4px 4px 0 var(--ink);
+  position: relative;
+  overflow: hidden;
+}
+.ct-card::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 0;
+  height: 6px;
+  background: var(--orange);
+}
+.ct-card.ct-Video::before     { background: var(--purple); }
+.ct-card.ct-Showcase::before  { background: var(--mint); }
+.ct-card.ct-Livestream::before{ background: var(--orange); }
+.ct-card.ct-External::before  { background: var(--sun); }
+.ct-card.ct-Other::before     { background: var(--peach); }
+
+.ct-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ct-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+.ct-name {
+  flex: 1;
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.ct-pct {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--orange-deep);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.ct-card.ct-Video    .ct-pct { color: var(--purple-deep); }
+.ct-card.ct-Showcase .ct-pct { color: var(--mint-deep); }
+.ct-card.ct-Livestream .ct-pct { color: var(--orange-deep); }
+.ct-card.ct-External .ct-pct { color: var(--sun-deep); }
+
+.ct-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  border-top: 1.5px dashed var(--line-soft, #EEE5D6);
+  padding-top: 12px;
+}
+.ct-stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ct-stat-v {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ct-stat-l {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.ct-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--ink-3);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  border-top: 1.5px dashed var(--line-soft, #EEE5D6);
+  padding-top: 10px;
+}
+.ct-foot strong { color: var(--ink); font-weight: 800; }
+
+.ct-empty {
+  grid-column: 1 / -1;
+  padding: 24px;
+  text-align: center;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+/* TOP 10 内容里的 TikTok 链接 */
+.tt-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ink);
+  text-decoration: none;
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  background: var(--bg-soft, #FFE4C7);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+  transition: all .15s ease;
+}
+.tt-link:hover {
+  background: var(--ink);
+  color: var(--sun);
+  transform: translate(-1px, -1px);
+}
+.tt-link::after {
+  content: "↗";
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 11px;
+  opacity: 0.7;
+}
+.tt-link.tt-link-disabled {
+  background: transparent;
+  color: var(--ink-3);
+  border: 1.5px dashed var(--ink-4);
+  cursor: default;
+}
+.tt-link.tt-link-disabled:hover { transform: none; background: transparent; color: var(--ink-3); }
+.tt-link.tt-link-disabled::after { content: ""; }

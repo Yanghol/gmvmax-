@@ -1061,7 +1061,7 @@ if (recentGmvGrid) {
   });
 }
 
-const FX_IDR_PER_CNY = 2460;
+const FX_IDR_PER_CNY = 2500;
 let displayCurrency = localStorage.getItem("currency") || "IDR";
 let gmvBaseCurrency = "IDR";
 
