@@ -1,0 +1,232 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="author" content="杨浩" />
+  <title data-i18n="gmv.title">CusCus · GMV MAX 分析看台</title>
+  <link rel="icon" type="image/png" href="assets/logo-vertical.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles-brand.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body data-tool="gmv">
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <main class="app">
+    <nav class="top-nav">
+      <a class="brand" href="index.html" data-i18n="common.brand" aria-label="CusCus 工作台"></a>
+      <div class="nav-links">
+        <a href="index.html" data-i18n="common.nav.home">导航页</a>
+        <a href="gmv.html" class="active" aria-current="page" data-i18n="common.nav.gmv">GMV MAX</a>
+        <a href="video.html" data-i18n="common.nav.video">视频看板</a>
+        <a href="script.html" data-i18n="common.nav.script">脚本生成</a>
+        <a href="order.html" data-i18n="common.nav.order">订单分析</a>
+      </div>
+      <div class="nav-controls">
+        <div class="lang-switch">
+          <button class="ghost" data-lang="zh" data-i18n="common.lang.zh">中文</button>
+          <button class="ghost" data-lang="en" data-i18n="common.lang.en">English</button>
+        </div>
+        <div class="currency-switch">
+          <span class="currency-label" data-i18n="fx.currency">货币</span>
+          <button class="ghost" data-currency="IDR">IDR</button>
+          <button class="ghost" data-currency="CNY">CNY</button>
+        </div>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div>
+        <p class="eyebrow" data-i18n="gmv.eyebrow">GMV MAX • 广告数据分析与优化建议</p>
+        <h1 data-i18n="gmv.h1">CusCus GMV MAX分析看台</h1>
+        <p class="sub" data-i18n="gmv.sub">上传 GMV MAX 后台导出的创意数据报表，自动生成关键指标、趋势洞察与可执行优化建议。</p>
+      </div>
+      <div class="upload-card">
+        <div class="upload-title" data-i18n="gmv.upload.title">导入报表</div>
+        <label class="upload-btn">
+          <span data-i18n="gmv.upload.button">选择 Excel 文件</span>
+          <input id="fileInput" type="file" accept=".xlsx,.xls" />
+        </label>
+        <div class="upload-hint" data-i18n="gmv.upload.hint">支持 GMV MAX 导出的 Excel 报表</div>
+        <div id="fileMeta" class="upload-meta" data-i18n="gmv.upload.empty">尚未导入文件</div>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 data-i18n="gmv.section.kpi">关键指标</h2>
+        <div id="dataStatus" class="pill" data-i18n="status.wait">等待导入</div>
+      </div>
+      <div class="kpi-grid" id="kpiGrid"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 data-i18n="gmv.section.recent">近七天新增GMV视频</h2>
+        <div id="recentGmvMeta" class="pill" data-i18n="status.wait">等待导入</div>
+      </div>
+      <div id="recentGmvGrid" class="video-grid"></div>
+      <div id="recentGmvPagination" class="pagination"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 data-i18n="gmv.section.inflight">在投视频播放数据</h2>
+        <div class="pill" data-i18n="gmv.inflight.pill">仅统计状态为“投放中”的视频</div>
+      </div>
+      <div class="kpi-grid" id="inFlightGrid"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 data-i18n="gmv.section.trend">趋势与结构</h2>
+        <div class="section-actions">
+          <label class="inline-label" data-i18n="gmv.trend.label">趋势维度</label>
+          <select id="trendGranularity" class="select">
+            <option value="day" data-i18n="gmv.trend.day">按天</option>
+            <option value="week" data-i18n="gmv.trend.week">按周</option>
+            <option value="month" data-i18n="gmv.trend.month">按月</option>
+          </select>
+          <button class="ghost" id="downloadCsv" data-i18n="gmv.trend.export">导出清洗后的 CSV</button>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="chart-card">
+          <div class="chart-title" data-i18n="gmv.chart.roi">ROI / 成本 / 收入趋势</div>
+          <canvas id="trendChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title" data-i18n="gmv.chart.ctr">点击率与转化率</div>
+          <canvas id="ctrChart"></canvas>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title" data-i18n="gmv.chart.watch">播放深度分布</div>
+          <canvas id="watchChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 data-i18n="gmv.section.aggregate">聚合分析</h2>
+        <div class="pill" data-i18n="gmv.aggregate.pill">按账号 / 创意类型 / 视频来源</div>
+      </div>
+      <div class="aggregate-grid">
+        <div class="table-wrap">
+          <div class="table-title" data-i18n="gmv.aggregate.account">按 TikTok 账号</div>
+          <table class="data-table" id="accountTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <div class="table-title" data-i18n="gmv.aggregate.type">按创意作品类型</div>
+          <table class="data-table" id="typeTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <div class="table-title" data-i18n="gmv.aggregate.source">按视频来源</div>
+          <table class="data-table" id="sourceTable">
+            <thead></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 data-i18n="gmv.section.alert">预警与优化建议</h2>
+        <div class="pill" data-i18n="gmv.alert.pill">自定义阈值 + 智能建议</div>
+      </div>
+      <div class="alert-panel">
+        <div class="alert-inputs">
+          <div>
+            <label data-i18n="gmv.alert.roi">ROI 预警阈值</label>
+            <input id="roiThreshold" class="search" placeholder="例如 1.2" data-i18n-placeholder="gmv.alert.roi" />
+          </div>
+          <div>
+            <label data-i18n="gmv.alert.ctr">CTR 预警阈值</label>
+            <input id="ctrThreshold" class="search" placeholder="例如 1.5%" data-i18n-placeholder="gmv.alert.ctr" />
+          </div>
+          <div>
+            <label data-i18n="gmv.alert.cvr">CVR 预警阈值</label>
+            <input id="cvrThreshold" class="search" placeholder="例如 0.6%" data-i18n-placeholder="gmv.alert.cvr" />
+          </div>
+          <button class="ghost" id="applyThreshold" data-i18n="gmv.alert.apply">应用阈值</button>
+        </div>
+        <div id="alertSummary" class="alert-summary" data-i18n="status.wait">导入数据后可生成阈值预警</div>
+      </div>
+      <div id="recommendations" class="recommendations"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-header">
+        <h2 data-i18n="gmv.section.detail">视频明细</h2>
+        <div class="section-actions">
+          <input id="searchInput" class="search" placeholder="搜索视频 ID / 标题 / 账号" data-i18n-placeholder="gmv.search.placeholder" />
+          <select id="sortSelect" class="select">
+            <option value="roi_desc" data-i18n="gmv.sort.roi">ROI 从高到低</option>
+            <option value="cost_desc" data-i18n="gmv.sort.cost">成本 从高到低</option>
+            <option value="revenue_desc" data-i18n="gmv.sort.revenue">收入 从高到低</option>
+            <option value="orders_desc" data-i18n="gmv.sort.orders">订单数 从高到低</option>
+            <option value="ctr_desc" data-i18n="gmv.sort.ctr">点击率 从高到低</option>
+          </select>
+        </div>
+      </div>
+      <div id="gmvVideoGrid" class="video-grid"></div>
+      <div id="gmvPagination" class="pagination"></div>
+    </section>
+
+    <section class="section help">
+      <h2 data-i18n="gmv.help.title">GMV MAX 是什么？</h2>
+      <p data-i18n="gmv.help.body">GMV MAX 是 TikTok Shop 的自动化投放模式，系统会基于你的目标（GMV/ROI）自动选择创意、投放位置与优化策略。你需要关注的是：高 ROI 素材、低成本获客、高完播率脚本与高转化链路。</p>
+    </section>
+  </main>
+
+  <button id="backToTop" class="back-to-top" aria-label="回到顶部">↑</button>
+  <footer class="footer" data-i18n="gmv.footer">CusCus GMV MAX分析看台</footer>
+
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      var title = '%c✦ Shining Kids By CusCus ✦';
+      var line  = '%c  design & build · 杨浩 · 2026  ';
+      var hint  = '%cchildren’s skin care · internal workstation';
+      var s1 = [
+        'background:#FF7500',
+        'color:#0E0E0E',
+        'font:900 22px/1.6 Nunito,PingFang SC,sans-serif',
+        'padding:10px 18px',
+        'border-radius:999px',
+        'border:3px solid #0E0E0E'
+      ].join(';');
+      var s2 = [
+        'background:#0E0E0E',
+        'color:#FFD93D',
+        'font:800 13px/1.8 Nunito,PingFang SC,monospace',
+        'padding:6px 14px',
+        'border-radius:999px',
+        'letter-spacing:0.12em',
+        'margin-top:6px'
+      ].join(';');
+      var s3 = [
+        'color:#9A7BE8',
+        'font:600 11px/1.6 PingFang SC,sans-serif',
+        'letter-spacing:0.1em',
+        'margin-top:4px'
+      ].join(';');
+      console.log(title + '\n' + line + '\n' + hint, s1, s2, s3);
+    })();
+  </script>
+</body>
+</html>

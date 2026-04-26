@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="author" content="杨浩" />
+  <title data-i18n="order.title">CusCus · 订单分析</title>
+  <link rel="icon" type="image/png" href="assets/logo-vertical.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles-brand.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body data-tool="order">
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <main class="app">
+    <nav class="top-nav">
+      <a class="brand" href="index.html" data-i18n="common.brand" aria-label="CusCus 工作台"></a>
+      <div class="nav-links">
+        <a href="index.html" data-i18n="common.nav.home">导航页</a>
+        <a href="gmv.html" data-i18n="common.nav.gmv">GMV MAX</a>
+        <a href="video.html" data-i18n="common.nav.video">视频看板</a>
+        <a href="script.html" data-i18n="common.nav.script">脚本生成</a>
+        <a href="order.html" class="active" aria-current="page" data-i18n="common.nav.order">订单分析</a>
+      </div>
+      <div class="nav-controls">
+        <div class="lang-switch">
+          <button class="ghost" data-lang="zh" data-i18n="common.lang.zh">中文</button>
+          <button class="ghost" data-lang="en" data-i18n="common.lang.en">English</button>
+        </div>
+        <div class="currency-switch">
+          <span class="currency-label" data-i18n="fx.currency">货币</span>
+          <button class="ghost" data-currency="IDR">IDR</button>
+          <button class="ghost" data-currency="CNY">CNY</button>
+        </div>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div>
+        <p class="eyebrow" data-i18n="order.eyebrow">订单数据 • 筛选与聚合分析</p>
+        <h1 data-i18n="order.h1">CusCus订单分析</h1>
+        <p class="sub" data-i18n="order.sub">支持店铺订单与达人订单两种模式 · 上传 CSV 自动识别 · 多维度筛选与聚合分析。</p>
+      </div>
+      <div class="upload-card">
+        <div class="upload-title" data-i18n="order.upload.title">导入订单</div>
+        <label class="upload-btn">
+          <span data-i18n="order.upload.button">选择 CSV 文件</span>
+          <input id="fileInput" type="file" accept=".csv" />
+        </label>
+        <div class="upload-hint" data-i18n="order.upload.hint">店铺订单 / 达人订单都支持，自动识别</div>
+        <div id="fileMeta" class="upload-meta" data-i18n="order.upload.empty">尚未导入文件</div>
+      </div>
+    </header>
+
+    <!-- 模式切换 tabs -->
+    <div class="mode-switch">
+      <div class="mode-tabs" role="tablist">
+        <button class="mode-tab active" data-mode="shop" role="tab" aria-selected="true">
+          <span>📦</span><span data-i18n="order.mode.shop">店铺订单</span>
+          <span class="badge" id="shopBadge" hidden>0</span>
+        </button>
+        <button class="mode-tab" data-mode="affiliate" role="tab" aria-selected="false">
+          <span>👥</span><span data-i18n="order.mode.affiliate">达人订单</span>
+          <span class="badge" id="affBadge" hidden>0</span>
+        </button>
+      </div>
+      <div class="mode-info">
+        <span data-mode-info="shop">
+          <span class="ki" data-i18n="order.mode.shop.title">店铺后台</span>
+          <span data-i18n="order.mode.shop.desc">— 订单、物流、寄样、地理 · 60+ 字段</span>
+        </span>
+        <span data-mode-info="affiliate" hidden>
+          <span class="ki" data-i18n="order.mode.affiliate.title">达人后台</span>
+          <span data-i18n="order.mode.affiliate.desc">— 达人、内容、佣金 · 30 字段</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- 自动识别提示 -->
+    <div class="mode-toast" id="modeToast">
+      <span class="icon">!</span>
+      <span id="modeToastText"></span>
+      <button class="close" id="modeToastClose" aria-label="关闭">×</button>
+    </div>
+
+    <!-- KPI（共享外壳，按 mode 渲染不同内容） -->
+    <section class="section">
+      <div class="section-header">
+        <h2 data-i18n="order.section.kpi">关键指标</h2>
+        <div id="dataStatus" class="pill" data-i18n="status.wait">等待导入</div>
+      </div>
+      <div class="kpi-grid" id="kpiGrid"></div>
+    </section>
+
+    <!-- ============== SHOP MODE ============== -->
+    <div data-mode-content="shop">
+
+      <section class="section" id="aggregateSection" style="display:none">
+        <div class="section-header">
+          <h2 data-i18n="order.section.aggregate">聚合分析</h2>
+          <div class="pill" data-i18n="order.aggregate.pill">仅统计付费订单</div>
+        </div>
+
+        <div class="aggregate-grid">
+          <div class="agg-card agg-wide">
+            <div class="agg-title" data-i18n="order.agg.product">产品销量排行</div>
+            <div class="rank-table-wrap">
+              <table class="data-table" id="productRankTable">
+                <thead>
+                  <tr>
+                    <th data-i18n="order.agg.rank">#</th>
+                    <th data-i18n="order.agg.product_name">产品名</th>
+                    <th data-i18n="order.agg.orders">订单数</th>
+                    <th data-i18n="order.agg.gmv">GMV</th>
+                    <th data-i18n="order.agg.cancel_rate">取消率</th>
+                  </tr>
+                </thead>
+                <tbody id="productRankBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="agg-card">
+            <div class="agg-title" data-i18n="order.agg.province">省份 TOP 10</div>
+            <div class="chart-box chart-tall"><canvas id="provinceChart"></canvas></div>
+          </div>
+
+          <div class="agg-card">
+            <div class="agg-title" data-i18n="order.agg.status">订单状态分布</div>
+            <div class="chart-box chart-tall"><canvas id="statusChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="agg-card agg-full" style="margin-top:16px">
+          <div class="agg-title" data-i18n="order.agg.trend">每日订单趋势（付费订单）</div>
+          <div class="chart-box chart-short"><canvas id="trendChart"></canvas></div>
+        </div>
+
+        <div class="aggregate-grid" style="margin-top:16px">
+          <div class="agg-card">
+            <div class="agg-title" data-i18n="order.agg.cancel">取消原因分析</div>
+            <div class="chart-box chart-tall"><canvas id="cancelChart"></canvas></div>
+          </div>
+          <div class="agg-card">
+            <div class="agg-title" data-i18n="order.agg.sample">寄样产品分布</div>
+            <div class="chart-box chart-tall"><canvas id="sampleChart"></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <h2 data-i18n="order.section.filter">订单筛选</h2>
+          <button class="ghost" id="resetFilters" data-i18n="order.filter.reset">重置筛选</button>
+        </div>
+        <div class="filter-panel">
+          <div class="filter-row">
+            <div class="filter-item">
+              <label data-i18n="order.filter.search">订单号 / 用户名 / Tracking ID</label>
+              <input id="searchInput" class="search" placeholder="搜索..." data-i18n-placeholder="order.filter.search" />
+            </div>
+            <div class="filter-item">
+              <label data-i18n="order.filter.status">订单状态</label>
+              <select id="statusFilter" class="select">
+                <option value="" data-i18n="order.filter.all">全部</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Completed">Completed</option>
+                <option value="Canceled">Canceled</option>
+                <option value="To ship">To ship</option>
+                <option value="Unpaid">Unpaid</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label data-i18n="order.filter.channel">渠道</label>
+              <select id="channelFilter" class="select">
+                <option value="" data-i18n="order.filter.all">全部</option>
+                <option value="TikTok">TikTok</option>
+                <option value="Tokopedia">Tokopedia</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label data-i18n="order.filter.sample">寄样状态</label>
+              <select id="sampleFilter" class="select">
+                <option value="" data-i18n="order.filter.all">全部</option>
+                <option value="paid" data-i18n="order.filter.paid">付费订单</option>
+                <option value="sample" data-i18n="order.filter.sample_only">仅寄样</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-row">
+            <div class="filter-item">
+              <label data-i18n="order.filter.product">产品名</label>
+              <input id="productFilter" class="search" placeholder="产品名..." data-i18n-placeholder="order.filter.product" />
+            </div>
+            <div class="filter-item">
+              <label data-i18n="order.filter.province">省份</label>
+              <select id="provinceFilter" class="select">
+                <option value="" data-i18n="order.filter.all">全部</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label data-i18n="order.filter.dateFrom">下单时间（从）</label>
+              <input id="dateFrom" type="date" class="search" />
+            </div>
+            <div class="filter-item">
+              <label data-i18n="order.filter.dateTo">下单时间（到）</label>
+              <input id="dateTo" type="date" class="search" />
+            </div>
+          </div>
+        </div>
+        <div class="filter-meta">
+          <span id="filterMeta" data-i18n="order.filter.showing">显示 0 / 0 订单</span>
+          <button class="ghost" id="exportBtn" data-i18n="order.filter.export">导出筛选结果</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <h2 data-i18n="order.section.detail">订单明细</h2>
+          <div class="section-actions">
+            <select id="sortSelect" class="select">
+              <option value="date_desc" data-i18n="order.sort.date_desc">下单时间 从新到旧</option>
+              <option value="date_asc" data-i18n="order.sort.date_asc">下单时间 从旧到新</option>
+              <option value="amount_desc" data-i18n="order.sort.amount_desc">订单金额 从高到低</option>
+              <option value="amount_asc" data-i18n="order.sort.amount_asc">订单金额 从低到高</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="order-table" id="orderTable">
+            <thead>
+              <tr>
+                <th data-i18n="order.table.orderId">订单号</th>
+                <th data-i18n="order.table.date">下单时间</th>
+                <th data-i18n="order.table.product">产品</th>
+                <th data-i18n="order.table.sku">SKU</th>
+                <th data-i18n="order.table.qty">数量</th>
+                <th data-i18n="order.table.amount">订单金额</th>
+                <th data-i18n="order.table.status">状态</th>
+                <th data-i18n="order.table.channel">渠道</th>
+                <th data-i18n="order.table.province">省份</th>
+                <th data-i18n="order.table.sample">寄样</th>
+              </tr>
+            </thead>
+            <tbody id="orderTableBody"></tbody>
+          </table>
+        </div>
+        <div id="pagination" class="pagination"></div>
+      </section>
+
+      <section class="section help">
+        <h2 data-i18n="order.help.title">如何使用订单分析？</h2>
+        <p data-i18n="order.help.body">从店铺后台导出订单CSV，系统会自动识别寄样（0元无支付方式）、匹配产品名、支持多条件筛选。点击任意订单可查看完整字段详情。</p>
+      </section>
+
+    </div>
+
+    <!-- ============== AFFILIATE MODE ============== -->
+    <div data-mode-content="affiliate" hidden>
+
+      <section class="section" id="affAggregateSection" style="display:none">
+        <div class="section-header">
+          <h2 data-i18n="aff.section.aggregate">聚合分析</h2>
+          <div class="pill" data-i18n="aff.aggregate.pill">达人 + 内容 + 佣金</div>
+        </div>
+
+        <div class="aggregate-grid">
+          <div class="agg-card agg-wide">
+            <div class="agg-title" data-i18n="aff.agg.creator">达人排行榜</div>
+            <div class="rank-table-wrap">
+              <table class="data-table" id="creatorRankTable">
+                <thead>
+                  <tr>
+                    <th data-i18n="aff.col.rank">#</th>
+                    <th data-i18n="aff.col.creator">达人</th>
+                    <th data-i18n="aff.col.orders">订单</th>
+                    <th data-i18n="aff.col.gmv">GMV</th>
+                    <th data-i18n="aff.col.commission">佣金</th>
+                    <th data-i18n="aff.col.aov">客单</th>
+                    <th data-i18n="aff.col.refund_rate">退货率</th>
+                  </tr>
+                </thead>
+                <tbody id="creatorRankBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="agg-card">
+            <div class="agg-title" data-i18n="aff.agg.contentType">内容类型</div>
+            <div class="chart-box chart-tall"><canvas id="contentTypeChart"></canvas></div>
+          </div>
+        </div>
+
+        <!-- 内容类型分解（详细 stats） -->
+        <div class="agg-card agg-full" style="margin-top:16px">
+          <div class="agg-title" data-i18n="aff.agg.contentBreakdown">内容来源分解 · 各类型贡献</div>
+          <div class="ct-breakdown" id="contentTypeBreakdown"></div>
+        </div>
+
+        <div class="aggregate-grid" style="margin-top:16px">
+          <div class="agg-card agg-wide">
+            <div class="agg-title" data-i18n="aff.agg.topContent">热门内容 TOP 10</div>
+            <div class="rank-table-wrap">
+              <table class="data-table" id="topContentTable">
+                <thead>
+                  <tr>
+                    <th data-i18n="aff.col.rank">#</th>
+                    <th data-i18n="aff.col.contentId">Content ID</th>
+                    <th data-i18n="aff.col.contentType">类型</th>
+                    <th data-i18n="aff.col.creator">达人</th>
+                    <th data-i18n="aff.col.orders">订单</th>
+                    <th data-i18n="aff.col.gmv">GMV</th>
+                  </tr>
+                </thead>
+                <tbody id="topContentBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="agg-card">
+            <div class="agg-title" data-i18n="aff.agg.commissionMix">佣金构成</div>
+            <div class="chart-box chart-tall"><canvas id="commissionMixChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="agg-card agg-full" style="margin-top:16px">
+          <div class="agg-title" data-i18n="aff.agg.trend">每日趋势 · 订单 / GMV / 佣金</div>
+          <div class="chart-box chart-short"><canvas id="affTrendChart"></canvas></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <h2 data-i18n="aff.section.filter">订单筛选</h2>
+          <button class="ghost" id="affResetFilters" data-i18n="order.filter.reset">重置筛选</button>
+        </div>
+        <div class="filter-panel">
+          <div class="filter-row">
+            <div class="filter-item">
+              <label data-i18n="aff.filter.search">达人 / 订单号 / Content ID</label>
+              <input id="affSearchInput" class="search" placeholder="搜索..." data-i18n-placeholder="aff.filter.search" />
+            </div>
+            <div class="filter-item">
+              <label data-i18n="aff.filter.contentType">内容类型</label>
+              <select id="affContentTypeFilter" class="select">
+                <option value="" data-i18n="order.filter.all">全部</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label data-i18n="aff.filter.status">订单状态</label>
+              <select id="affStatusFilter" class="select">
+                <option value="" data-i18n="order.filter.all">全部</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label data-i18n="aff.filter.refund">退货筛选</label>
+              <select id="affRefundFilter" class="select">
+                <option value="" data-i18n="order.filter.all">全部</option>
+                <option value="yes" data-i18n="aff.filter.refund_yes">已退货</option>
+                <option value="no" data-i18n="aff.filter.refund_no">未退货</option>
+              </select>
+            </div>
+          </div>
+          <div class="filter-row">
+            <div class="filter-item">
+              <label data-i18n="aff.filter.creator">达人用户名</label>
+              <select id="affCreatorFilter" class="select">
+                <option value="" data-i18n="order.filter.all">全部</option>
+              </select>
+            </div>
+            <div class="filter-item">
+              <label data-i18n="order.filter.dateFrom">下单时间（从）</label>
+              <input id="affDateFrom" type="date" class="search" />
+            </div>
+            <div class="filter-item">
+              <label data-i18n="order.filter.dateTo">下单时间（到）</label>
+              <input id="affDateTo" type="date" class="search" />
+            </div>
+            <div class="filter-item"></div>
+          </div>
+        </div>
+        <div class="filter-meta">
+          <span id="affFilterMeta" data-i18n="order.filter.showing">显示 0 / 0 订单</span>
+          <button class="ghost" id="affExportBtn" data-i18n="order.filter.export">导出筛选结果</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <h2 data-i18n="aff.section.detail">订单明细</h2>
+          <div class="section-actions">
+            <select id="affSortSelect" class="select">
+              <option value="date_desc" data-i18n="order.sort.date_desc">下单时间 从新到旧</option>
+              <option value="date_asc" data-i18n="order.sort.date_asc">下单时间 从旧到新</option>
+              <option value="payment_desc" data-i18n="aff.sort.payment_desc">订单金额 从高到低</option>
+              <option value="commission_desc" data-i18n="aff.sort.commission_desc">佣金 从高到低</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-container">
+          <table class="order-table" id="affOrderTable">
+            <thead>
+              <tr>
+                <th data-i18n="order.table.orderId">订单号</th>
+                <th data-i18n="order.table.date">下单时间</th>
+                <th data-i18n="aff.col.creator">达人</th>
+                <th data-i18n="aff.col.contentType">内容类型</th>
+                <th data-i18n="order.table.product">产品</th>
+                <th data-i18n="order.table.qty">数量</th>
+                <th data-i18n="aff.col.payment">Payment</th>
+                <th data-i18n="order.table.status">状态</th>
+                <th data-i18n="aff.col.commission_rate">佣金率</th>
+                <th data-i18n="aff.col.commission_actual">实际佣金</th>
+              </tr>
+            </thead>
+            <tbody id="affOrderTableBody"></tbody>
+          </table>
+        </div>
+        <div id="affPagination" class="pagination"></div>
+      </section>
+
+      <section class="section help">
+        <h2 data-i18n="aff.help.title">如何使用达人订单分析？</h2>
+        <p data-i18n="aff.help.body">从达人后台（联盟）导出订单 CSV，系统会自动识别为达人模式，并按达人/内容/佣金维度做聚合分析。可以查看哪个达人贡献最大、哪条视频转化最好、佣金成本如何分布。</p>
+      </section>
+
+    </div>
+
+  </main>
+
+  <button id="backToTop" class="back-to-top" aria-label="回到顶部">↑</button>
+  <footer class="footer" data-i18n="order.footer">CusCus订单分析</footer>
+
+  <!-- 订单详情抽屉（共享，按 mode 渲染不同字段） -->
+  <div id="orderDrawer" class="drawer">
+    <div class="drawer-overlay"></div>
+    <div class="drawer-panel">
+      <div class="drawer-header">
+        <h3 data-i18n="order.drawer.title">订单详情</h3>
+        <button class="drawer-close" aria-label="关闭">&times;</button>
+      </div>
+      <div class="drawer-body" id="drawerBody"></div>
+    </div>
+  </div>
+
+  <script src="i18n.js"></script>
+  <script src="sku-mapping.js"></script>
+  <script src="order.js"></script>
+  <script>
+    (function () {
+      var title = '%c✦ Shining Kids By CusCus ✦';
+      var line  = '%c  design & build · 杨浩 · 2026  ';
+      var hint  = '%cchildren’s skin care · internal workstation';
+      var s1 = [
+        'background:#FF7500',
+        'color:#0E0E0E',
+        'font:900 22px/1.6 Nunito,PingFang SC,sans-serif',
+        'padding:10px 18px',
+        'border-radius:999px',
+        'border:3px solid #0E0E0E'
+      ].join(';');
+      var s2 = [
+        'background:#0E0E0E',
+        'color:#FFD93D',
+        'font:800 13px/1.8 Nunito,PingFang SC,monospace',
+        'padding:6px 14px',
+        'border-radius:999px',
+        'letter-spacing:0.12em',
+        'margin-top:6px'
+      ].join(';');
+      var s3 = [
+        'color:#9A7BE8',
+        'font:600 11px/1.6 PingFang SC,sans-serif',
+        'letter-spacing:0.1em',
+        'margin-top:4px'
+      ].join(';');
+      console.log(title + '\n' + line + '\n' + hint, s1, s2, s3);
+    })();
+  </script>
+</body>
+</html>
