@@ -232,7 +232,8 @@ const PAGE_SIZE = 50;
 const state = {
   mode: "shop",                                      // 当前激活模式
   shop:      { orders: [], filtered: [], page: 1 },
-  affiliate: { orders: [], filtered: [], page: 1 }
+  affiliate: { orders: [], filtered: [], page: 1 },
+  join:      { matched: [], affOnly: [], shopOnly: [], page: 1 }
 };
 const chartInstances = {};
 
@@ -330,6 +331,8 @@ const els = {
   modeInfos:   document.querySelectorAll("[data-mode-info]"),
   shopBadge:   document.getElementById("shopBadge"),
   affBadge:    document.getElementById("affBadge"),
+  joinTab:     document.getElementById("joinTab"),
+  joinBadge:   document.getElementById("joinBadge"),
   modeToast:   document.getElementById("modeToast"),
   modeToastText: document.getElementById("modeToastText"),
   modeToastClose: document.getElementById("modeToastClose"),
@@ -376,6 +379,19 @@ const els = {
     sortSelect: document.getElementById("affSortSelect"),
     orderTableBody: document.getElementById("affOrderTableBody"),
     pagination: document.getElementById("affPagination")
+  },
+
+  // join
+  j: {
+    aggregateSection:    document.getElementById("joinAggregateSection"),
+    matchBreakdown:      document.getElementById("joinMatchBreakdown"),
+    creatorBody:         document.getElementById("joinCreatorBody"),
+    contentProvinceBody: document.getElementById("joinContentProvinceBody"),
+    sortSelect:          document.getElementById("joinSortSelect"),
+    tableBody:           document.getElementById("joinTableBody"),
+    pagination:          document.getElementById("joinPagination"),
+    filterMeta:          document.getElementById("joinFilterMeta"),
+    exportBtn:           document.getElementById("joinExportBtn")
   }
 };
 
@@ -386,6 +402,14 @@ function updateCurrencyButtons() {
 }
 
 function rerenderCurrentMode() {
+  if (state.mode === "join") {
+    if (state.join.matched.length) {
+      join.renderKPIs();
+      join.renderAggregates();
+      join.renderTable();
+    }
+    return;
+  }
   const cur = state[state.mode];
   if (!cur.orders.length) return;
   if (state.mode === "shop") {
@@ -419,7 +443,7 @@ updateCurrencyButtons();
 // ════════════════════════════════════════════════════════════
 
 function switchMode(newMode, opts = {}) {
-  if (newMode !== "shop" && newMode !== "affiliate") return;
+  if (newMode !== "shop" && newMode !== "affiliate" && newMode !== "join") return;
   state.mode = newMode;
 
   // 更新 tabs 高亮
@@ -440,14 +464,26 @@ function switchMode(newMode, opts = {}) {
   });
 
   // 根据当前模式重渲染 KPI（如果有数据）
-  const cur = state[newMode];
-  if (cur.orders.length) {
-    if (newMode === "shop") { shop.renderKPIs(); shop.renderAggregates(); shop.applyFilters(); }
-    else                    { affiliate.renderKPIs(); affiliate.renderAggregates(); affiliate.applyFilters(); }
-    els.dataStatus.textContent = tt("status.loaded", { n: cur.orders.length }) || `已导入 ${cur.orders.length} 订单`;
+  if (newMode === "join") {
+    if (state.join.matched.length) {
+      join.renderKPIs();
+      join.renderAggregates();
+      join.renderTable();
+      els.dataStatus.textContent = `已关联 ${state.join.matched.length.toLocaleString()} 条`;
+    } else {
+      els.kpiGrid.innerHTML = "";
+      els.dataStatus.textContent = "请先上传两种订单表格";
+    }
   } else {
-    els.kpiGrid.innerHTML = "";
-    els.dataStatus.textContent = tt("status.wait") || "等待导入";
+    const cur = state[newMode];
+    if (cur.orders.length) {
+      if (newMode === "shop") { shop.renderKPIs(); shop.renderAggregates(); shop.applyFilters(); }
+      else                    { affiliate.renderKPIs(); affiliate.renderAggregates(); affiliate.applyFilters(); }
+      els.dataStatus.textContent = tt("status.loaded", { n: cur.orders.length }) || `已导入 ${cur.orders.length} 订单`;
+    } else {
+      els.kpiGrid.innerHTML = "";
+      els.dataStatus.textContent = tt("status.wait") || "等待导入";
+    }
   }
 
   if (opts.toast) {
@@ -506,15 +542,23 @@ els.fileInput.addEventListener("change", async e => {
     if (sCount) { els.shopBadge.hidden = false; els.shopBadge.textContent = sCount.toLocaleString(); }
     if (aCount) { els.affBadge.hidden = false;  els.affBadge.textContent  = aCount.toLocaleString(); }
 
-    // 自动切到检测出的模式
+    // 两表都有数据 → 触发关联分析，自动切换到 join 模式
+    if (sCount && aCount) {
+      buildJoin();
+      const matchRate = (state.join.matched.length / aCount * 100).toFixed(1);
+      const joinMsg = `✓ 两表已关联 · 匹配 ${state.join.matched.length.toLocaleString()} 条（达人订单匹配率 ${matchRate}%）`;
+      switchMode("join", { toast: joinMsg });
+      return;
+    }
+
+    // 单表：自动切到检测出的模式
     if (state.mode !== detectedMode) {
-      const otherCount = state.mode === "shop" ? aCount : sCount;
       const msg = detectedMode === "affiliate"
         ? `检测到这是达人订单 · 已自动切换到达人模式（${rows.length} 条）`
         : `检测到这是店铺订单 · 已自动切换到店铺模式（${rows.length} 条）`;
       switchMode(detectedMode, { toast: msg });
     } else {
-      // 同模式重新导入 → 也刷新一下 UI
+      // 同模式重新导入 → 刷新 UI
       if (detectedMode === "shop") { shop.renderKPIs(); shop.renderAggregates(); shop.applyFilters(); }
       else                         { affiliate.renderKPIs(); affiliate.renderAggregates(); affiliate.applyFilters(); }
       els.dataStatus.textContent = `已导入 ${rows.length} 订单`;
@@ -1315,6 +1359,330 @@ els.a.resetFilters.addEventListener("click", () => {
   els.a.dateFrom.value = ""; els.a.dateTo.value = ""; affiliate.applyFilters();
 });
 els.a.exportBtn.addEventListener("click", () => affiliate.exportCSV());
+
+// ════════════════════════════════════════════════════════════
+// 两表关联（JOIN）
+// ════════════════════════════════════════════════════════════
+
+function buildJoin() {
+  // 以店铺表 Order ID 建 lookup map，达人表做主循环
+  const shopMap = {};
+  state.shop.orders.forEach(o => {
+    const id = (o["Order ID"] || "").trim();
+    if (id) shopMap[id] = o;
+  });
+
+  const matched = [];
+  const affOnly = [];
+  const usedIds = new Set();
+
+  state.affiliate.orders.forEach(o => {
+    const id = (o["Order ID"] || "").trim();
+    const shopOrder = shopMap[id];
+    if (shopOrder) {
+      matched.push({ aff: o, shop: shopOrder });
+      usedIds.add(id);
+    } else {
+      affOnly.push(o);
+    }
+  });
+
+  const shopOnly = state.shop.orders.filter(o => !usedIds.has((o["Order ID"] || "").trim()));
+
+  state.join.matched  = matched;
+  state.join.affOnly  = affOnly;
+  state.join.shopOnly = shopOnly;
+  state.join.page     = 1;
+
+  // 启用关联 tab + badge
+  if (els.joinTab)   els.joinTab.disabled = false;
+  if (els.joinBadge) { els.joinBadge.hidden = false; els.joinBadge.textContent = matched.length.toLocaleString(); }
+}
+
+const join = {
+
+  renderKPIs() {
+    const { matched, affOnly, shopOnly } = state.join;
+    const totalAff     = state.affiliate.orders.length;
+    const matchRate    = totalAff ? matched.length / totalAff * 100 : 0;
+    const completed    = matched.filter(m => m.shop["Order Status"] === "Completed");
+    const completedGMV = completed.reduce((s, m) => s + (parseFloat(m.shop["Order Amount"]) || 0), 0);
+    const totalGMV     = matched.reduce((s, m) => s + (parseFloat(m.shop["Order Amount"]) || 0), 0);
+    const compRate     = matched.length ? completed.length / matched.length * 100 : 0;
+
+    const kpis = [
+      { label: "达人订单总数", value: totalAff.toLocaleString(),         note: "达人后台" },
+      { label: "成功匹配",     value: matched.length.toLocaleString(),   note: "Order ID 命中" },
+      { label: "匹配率",       value: formatPercent(matchRate),          note: "达人订单覆盖率" },
+      { label: "实际完成",     value: completed.length.toLocaleString(), note: "店铺 Completed 状态" },
+      { label: "完成率",       value: formatPercent(compRate),           note: "已完成 / 匹配" },
+      { label: "匹配 GMV",     value: formatCurrency(totalGMV),          note: "店铺订单金额合计" },
+      { label: "完成 GMV",     value: formatCurrency(completedGMV),      note: "Completed 订单合计" }
+    ];
+    els.kpiGrid.innerHTML = kpis.map(k => `
+      <div class="kpi-card">
+        <div class="kpi-title">${escapeHtml(k.label)}</div>
+        <div class="kpi-value">${escapeHtml(k.value)}</div>
+        <div class="kpi-note">${escapeHtml(k.note)}</div>
+      </div>`).join("");
+  },
+
+  renderAggregates() {
+    const sec = document.getElementById("joinAggregateSection");
+    if (sec) sec.style.display = "";
+    join.renderMatchBreakdown();
+    join.renderCreatorCompletion();
+    join.renderContentProvince();
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      join.renderProvinceChart();
+    }));
+  },
+
+  renderMatchBreakdown() {
+    const { matched, affOnly, shopOnly } = state.join;
+    const totalAff       = state.affiliate.orders.length;
+    const totalShopAll   = state.shop.orders.length;
+    // 排除寄样：付费订单 = 店铺总订单 - 寄样订单
+    const totalShopPaid  = state.shop.orders.filter(o => !o._isSample).length;
+    const totalSamples   = totalShopAll - totalShopPaid;
+    const shopOnlyPaid   = shopOnly.filter(o => !o._isSample);
+    const shopOnlySampleCount = shopOnly.length - shopOnlyPaid.length;
+
+    const matchRate   = totalAff  ? matched.length / totalAff  * 100 : 0;
+    const completed   = matched.filter(m => m.shop["Order Status"] === "Completed").length;
+    const compRate    = matched.length ? completed / matched.length * 100 : 0;
+    const affOnlyGMV  = affOnly.reduce((s, o) => s + o._payment, 0);
+    const shopOnlyGMV = shopOnlyPaid.reduce((s, o) => s + (parseFloat(o["Order Amount"]) || 0), 0);
+    // 达人来源占比 = 达人匹配 / 付费店铺订单（不含寄样）
+    const affShareOfShop = totalShopPaid ? matched.length / totalShopPaid * 100 : 0;
+    // 非达人占比 = 店铺独有付费订单 / 付费店铺订单
+    const shopOnlyPaidPct = totalShopPaid ? shopOnlyPaid.length / totalShopPaid * 100 : 0;
+
+    const el = document.getElementById("joinMatchBreakdown");
+    if (!el) return;
+    el.innerHTML = `
+      <div class="ct-card ct-Video">
+        <div class="ct-card-head">
+          <span class="ct-icon">🔗</span>
+          <span class="ct-name">成功匹配</span>
+          <span class="ct-pct" title="达人来源占付费店铺订单 ${affShareOfShop.toFixed(1)}%">${matchRate.toFixed(1)}%</span>
+        </div>
+        <div class="ct-stats">
+          <div class="ct-stat"><div class="ct-stat-v">${matched.length.toLocaleString()}</div><div class="ct-stat-l">匹配订单</div></div>
+          <div class="ct-stat"><div class="ct-stat-v">${completed.toLocaleString()}</div><div class="ct-stat-l">已完成</div></div>
+          <div class="ct-stat"><div class="ct-stat-v">${compRate.toFixed(1)}%</div><div class="ct-stat-l">完成率</div></div>
+        </div>
+        <div class="ct-foot">
+          <span>达人表 <strong>${totalAff.toLocaleString()}</strong> 条</span>
+          <span>店铺付费 <strong>${totalShopPaid.toLocaleString()}</strong> 条${totalSamples ? `（已排除 ${totalSamples.toLocaleString()} 寄样）` : ""}</span>
+        </div>
+      </div>
+      <div class="ct-card ct-Showcase">
+        <div class="ct-card-head">
+          <span class="ct-icon">👥</span>
+          <span class="ct-name">仅达人有</span>
+          <span class="ct-pct">${totalAff ? (affOnly.length / totalAff * 100).toFixed(1) : "0.0"}%</span>
+        </div>
+        <div class="ct-stats">
+          <div class="ct-stat"><div class="ct-stat-v">${affOnly.length.toLocaleString()}</div><div class="ct-stat-l">订单数</div></div>
+          <div class="ct-stat"><div class="ct-stat-v">—</div><div class="ct-stat-l">未命中</div></div>
+          <div class="ct-stat"><div class="ct-stat-v" title="${formatCurrency(affOnlyGMV)}">${formatJuta(affOnlyGMV)}</div><div class="ct-stat-l">达人GMV</div></div>
+        </div>
+        <div class="ct-foot"><span>达人系统有 · 店铺未匹配</span></div>
+      </div>
+      <div class="ct-card ct-External">
+        <div class="ct-card-head">
+          <span class="ct-icon">📦</span>
+          <span class="ct-name">仅店铺有</span>
+          <span class="ct-pct">${shopOnlyPaidPct.toFixed(1)}%</span>
+        </div>
+        <div class="ct-stats">
+          <div class="ct-stat"><div class="ct-stat-v">${shopOnlyPaid.length.toLocaleString()}</div><div class="ct-stat-l">付费订单</div></div>
+          <div class="ct-stat"><div class="ct-stat-v">—</div><div class="ct-stat-l">非达人单</div></div>
+          <div class="ct-stat"><div class="ct-stat-v" title="${formatCurrency(shopOnlyGMV)}">${formatJuta(shopOnlyGMV)}</div><div class="ct-stat-l">GMV</div></div>
+        </div>
+        <div class="ct-foot"><span>店铺有 · 达人未带货${shopOnlySampleCount ? `（已排除 ${shopOnlySampleCount.toLocaleString()} 寄样）` : ""}</span></div>
+      </div>
+    `;
+  },
+
+  renderCreatorCompletion() {
+    const map = {};
+    // 先统计达人全量订单数
+    state.affiliate.orders.forEach(o => {
+      const c = o["Creator Username"] || "(未知)";
+      if (!map[c]) map[c] = { affOrders: 0, matched: 0, completed: 0, gmv: 0 };
+      map[c].affOrders++;
+    });
+    // 再叠加匹配数据
+    state.join.matched.forEach(m => {
+      const c = m.aff["Creator Username"] || "(未知)";
+      if (!map[c]) map[c] = { affOrders: 0, matched: 0, completed: 0, gmv: 0 };
+      map[c].matched++;
+      map[c].gmv += parseFloat(m.shop["Order Amount"]) || 0;
+      if (m.shop["Order Status"] === "Completed") map[c].completed++;
+    });
+
+    const ranked = Object.entries(map).sort((a, b) => b[1].gmv - a[1].gmv).slice(0, 30);
+    const tbody  = document.getElementById("joinCreatorBody");
+    if (!tbody) return;
+    tbody.innerHTML = ranked.map(([name, d], i) => {
+      const matchRate = d.affOrders ? d.matched    / d.affOrders * 100 : 0;
+      const compRate  = d.matched   ? d.completed  / d.matched   * 100 : 0;
+      const compCls   = compRate > 70 ? "ok" : compRate > 40 ? "warning" : "danger";
+      return `<tr>
+        <td class="rank-num">${i + 1}</td>
+        <td><span class="creator-name">@${escapeHtml(name)}</span></td>
+        <td>${d.affOrders}</td>
+        <td>${d.matched} <small style="color:#9aa3b2;font-size:11px">(${matchRate.toFixed(0)}%)</small></td>
+        <td>${d.completed}</td>
+        <td><span class="cancel-rate rate-${compCls}">${compRate.toFixed(1)}%</span></td>
+        <td>${formatCurrency(d.gmv)}</td>
+      </tr>`;
+    }).join("");
+  },
+
+  renderProvinceChart() {
+    const map = {};
+    state.join.matched.forEach(m => {
+      const p = m.shop["Province"] || "未知";
+      map[p] = (map[p] || 0) + 1;
+    });
+    const top10 = Object.entries(map).sort((a, b) => b[1] - a[1]).slice(0, 10).reverse();
+    destroyChart("joinProvinceChart");
+    const ctx = document.getElementById("joinProvinceChart");
+    if (!ctx) return;
+    chartInstances["joinProvinceChart"] = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: top10.map(([p]) => p),
+        datasets: [{
+          label: "匹配订单数",
+          data: top10.map(([, c]) => c),
+          backgroundColor: "#CDB1FF",
+          borderColor: "#0E0E0E",
+          borderWidth: 1.5,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis: "y", responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `订单数: ${c.parsed.x}` } } },
+        scales: {
+          x: { ticks: { color: "#0E0E0E" }, grid: { color: "rgba(0,0,0,0.06)" } },
+          y: { ticks: { color: "#0E0E0E", font: { size: 11, weight: 700 } }, grid: { display: false } }
+        }
+      }
+    });
+  },
+
+  renderContentProvince() {
+    const map = {};
+    state.join.matched.forEach(m => {
+      const id = m.aff["Content ID"] || "(直接进店)";
+      if (!map[id]) map[id] = {
+        orders: 0, gmv: 0, completed: 0, provinces: {},
+        type: m.aff._contentType, creator: m.aff["Creator Username"] || ""
+      };
+      map[id].orders++;
+      map[id].gmv += parseFloat(m.shop["Order Amount"]) || 0;
+      if (m.shop["Order Status"] === "Completed") map[id].completed++;
+      const p = m.shop["Province"] || "未知";
+      map[id].provinces[p] = (map[id].provinces[p] || 0) + 1;
+    });
+
+    const top   = Object.entries(map).sort((a, b) => b[1].orders - a[1].orders).slice(0, 10);
+    const tbody = document.getElementById("joinContentProvinceBody");
+    if (!tbody) return;
+    tbody.innerHTML = top.map(([id, d], i) => {
+      const shortId  = id.length > 16 ? id.slice(0, 8) + "…" + id.slice(-5) : id;
+      const url      = getContentURL(id, d.creator, d.type);
+      const idCell   = url
+        ? `<a class="tt-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(shortId)}</a>`
+        : `<span class="tt-link tt-link-disabled" title="${escapeHtml(id)}">${escapeHtml(shortId)}</span>`;
+      const topProv  = Object.entries(d.provinces).sort((a, b) => b[1] - a[1]).slice(0, 3)
+                             .map(([p, c]) => `${p}(${c})`).join("、");
+      const compRate = d.orders ? d.completed / d.orders * 100 : 0;
+      const compCls  = compRate > 70 ? "ok" : compRate > 40 ? "warning" : "danger";
+      return `<tr>
+        <td class="rank-num">${i + 1}</td>
+        <td>${idCell}</td>
+        <td><span class="content-type-badge content-type-${contentTypeSlug(d.type)}">${escapeHtml(d.type || "—")}</span></td>
+        <td>${d.creator ? `<span class="creator-name">@${escapeHtml(d.creator)}</span>` : "—"}</td>
+        <td><strong>${d.orders}</strong></td>
+        <td>${formatCurrency(d.gmv)}</td>
+        <td><span class="cancel-rate rate-${compCls}">${compRate.toFixed(1)}%</span></td>
+        <td style="font-size:12px;color:#5E5E5E">${escapeHtml(topProv || "—")}</td>
+      </tr>`;
+    }).join("");
+  },
+
+  renderTable() {
+    const sorted = join.getSorted();
+    const start  = (state.join.page - 1) * PAGE_SIZE;
+    const page   = sorted.slice(start, start + PAGE_SIZE);
+
+    const tbody = document.getElementById("joinTableBody");
+    if (!tbody) return;
+    tbody.innerHTML = page.map(m => `
+      <tr>
+        <td class="order-id">${escapeHtml(m.aff["Order ID"])}</td>
+        <td>${formatDate(m.aff._date)}</td>
+        <td><span class="creator-name">@${escapeHtml(m.aff["Creator Username"])}</span></td>
+        <td><span class="content-type-badge content-type-${contentTypeSlug(m.aff._contentType)}">${escapeHtml(m.aff._contentType || "—")}</span></td>
+        <td class="product-name">${escapeHtml(m.aff._product)}</td>
+        <td class="amount-cell">${formatCurrency(m.aff._payment)}</td>
+        <td><span class="status-badge status-${escapeHtml((m.shop["Order Status"] || "").toLowerCase().replace(/\s/g, "-"))}">${escapeHtml(m.shop["Order Status"])}</span></td>
+        <td>${escapeHtml(m.shop["Province"])}</td>
+        <td class="amount-cell">${formatCurrency(m.aff._commissionActual)}</td>
+      </tr>`).join("");
+
+    join.renderPagination(sorted.length);
+    const meta = document.getElementById("joinFilterMeta");
+    if (meta) meta.textContent = `显示 ${sorted.length.toLocaleString()} 条关联订单`;
+  },
+
+  getSorted() {
+    const arr     = [...state.join.matched];
+    const sortEl  = document.getElementById("joinSortSelect");
+    const sortVal = sortEl ? sortEl.value : "date_desc";
+    arr.sort((a, b) => {
+      switch (sortVal) {
+        case "date_desc":       return (b.aff._date || 0) - (a.aff._date || 0);
+        case "date_asc":        return (a.aff._date || 0) - (b.aff._date || 0);
+        case "amount_desc":     return (parseFloat(b.shop["Order Amount"]) || 0) - (parseFloat(a.shop["Order Amount"]) || 0);
+        case "commission_desc": return b.aff._commissionActual - a.aff._commissionActual;
+      }
+      return 0;
+    });
+    return arr;
+  },
+
+  renderPagination(total) {
+    const container = document.getElementById("joinPagination");
+    if (!container) return;
+    renderPagination(container, total, state.join.page, p => {
+      state.join.page = p; join.renderTable();
+    });
+  },
+
+  exportCSV() {
+    if (!state.join.matched.length) { alert("没有关联数据可导出"); return; }
+    const headers = ["订单号", "下单时间", "达人", "内容类型", "Content ID", "产品", "Payment(达人)", "店铺状态", "省份", "实际佣金"];
+    const rows = state.join.matched.map(m => [
+      m.aff["Order ID"], m.aff["Time Created"], m.aff["Creator Username"],
+      m.aff._contentType, m.aff["Content ID"], m.aff._product,
+      m.aff._payment, m.shop["Order Status"], m.shop["Province"], m.aff._commissionActual
+    ]);
+    downloadCSV([headers, ...rows], `关联订单_${formatLocalDateKey(new Date())}.csv`);
+  }
+};
+
+// JOIN 事件
+const joinSortEl   = document.getElementById("joinSortSelect");
+const joinExportEl = document.getElementById("joinExportBtn");
+if (joinSortEl)   joinSortEl.addEventListener("change",  () => { state.join.page = 1; join.renderTable(); });
+if (joinExportEl) joinExportEl.addEventListener("click", () => join.exportCSV());
 
 // ════════════════════════════════════════════════════════════
 // 通用 · 分页 / 抽屉 / 导出

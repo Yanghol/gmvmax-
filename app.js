@@ -22,6 +22,10 @@ const recentGmvGrid = document.getElementById("recentGmvGrid");
 const recentGmvPagination = document.getElementById("recentGmvPagination");
 const recentGmvMeta = document.getElementById("recentGmvMeta");
 const currencyButtons = document.querySelectorAll("[data-currency]");
+const gmvPubDateFrom  = document.getElementById("gmvPubDateFrom");
+const gmvOrderFilter  = document.getElementById("gmvOrderFilter");
+const gmvFilterMeta   = document.getElementById("gmvFilterMeta");
+const gmvFilterReset  = document.getElementById("gmvFilterReset");
 const videoFileInput = document.getElementById("videoFileInput");
 const videoFileMeta = document.getElementById("videoFileMeta");
 const videoDataStatus = document.getElementById("videoDataStatus");
@@ -314,6 +318,27 @@ function updateKpis(data) {
     return base > 0 ? weighted / base : 0;
   });
 
+  // 近7天新出单视频（发布时间 ≥ 最新日期 - 6天 · SKU 订单数 > 0）
+  // 去重维度：视频 ID + 广告计划（不同广告计划=不同商品链接，应分别计数）
+  const dated = data.filter(r => r.__date instanceof Date && !isNaN(r.__date));
+  const maxDate = dated.length ? new Date(Math.max(...dated.map(r => r.__date.getTime()))) : null;
+  const cutoff7 = maxDate ? new Date(maxDate.getTime() - 6 * 24 * 60 * 60 * 1000) : null;
+  const newConvertingKeys = new Set();
+  if (cutoff7) {
+    dated.forEach(r => {
+      if (r.__date >= cutoff7 && (r["SKU 订单数"] || 0) > 0) {
+        const id = r["视频 ID"];
+        if (id !== undefined && id !== null && String(id).trim() !== "") {
+          // 优先用 广告计划 ID，没有则用文件来源（每个文件=一个产品）作为分组维度
+          const plan = r["广告计划 ID"] || r["广告计划名称"] || r.__source || "";
+          const key = String(id).trim() + "||" + String(plan).trim();
+          newConvertingKeys.add(key);
+        }
+      }
+    });
+  }
+  const newConvertingCount = newConvertingKeys.size;
+
   const kpis = [
     { title: tt("kpi.total_cost"), value: fmtMoney(cost, gmvBaseCurrency), note: tt("note.total_cost") },
     { title: tt("kpi.total_revenue"), value: fmtMoney(revenue, gmvBaseCurrency), note: tt("note.total_revenue") },
@@ -323,7 +348,8 @@ function updateKpis(data) {
     { title: tt("kpi.cpa"), value: fmtMoney(cpa, gmvBaseCurrency), note: tt("note.cpa") },
     { title: tt("kpi.ctr"), value: fmtPct(ctr), note: tt("note.ctr") },
     { title: tt("kpi.cvr"), value: fmtPct(cvr), note: tt("note.cvr") },
-    { title: tt("kpi.avg_watch"), value: fmtPct(avgWatch[5]), note: tt("note.avg_watch") }
+    { title: tt("kpi.avg_watch"), value: fmtPct(avgWatch[5]), note: tt("note.avg_watch") },
+    { title: tt("kpi.new_converting"), value: String(newConvertingCount), note: tt("note.new_converting") }
   ];
 
   kpiGrid.innerHTML = kpis.map(kpi => `
@@ -851,14 +877,26 @@ function renderRecentGmvVideos(data) {
 }
 
 function applyFilterAndSort() {
-  const keywords = splitKeywords(searchInput.value);
+  const keywords = splitKeywords(searchInput ? searchInput.value : "");
+  const pubDateFrom = gmvPubDateFrom && gmvPubDateFrom.value
+    ? new Date(gmvPubDateFrom.value)
+    : null;
+  const orderFilter = gmvOrderFilter ? gmvOrderFilter.value : "";
+
   filteredRows = rows.filter(r => {
-    if (!keywords.length) return true;
-    const haystack = normalizeKeyword(`${r["视频 ID"]} ${r["视频标题"]} ${r["TikTok 账号"]}`);
-    return keywords.every(key => haystack.includes(key));
+    if (keywords.length) {
+      const haystack = normalizeKeyword(`${r["视频 ID"]} ${r["视频标题"]} ${r["TikTok 账号"]}`);
+      if (!keywords.every(key => haystack.includes(key))) return false;
+    }
+    if (pubDateFrom) {
+      if (!(r.__date instanceof Date) || r.__date < pubDateFrom) return false;
+    }
+    if (orderFilter === "has" && !((r["SKU 订单数"] || 0) > 0)) return false;
+    if (orderFilter === "none" && (r["SKU 订单数"] || 0) > 0) return false;
+    return true;
   });
 
-  const sortValue = sortSelect.value;
+  const sortValue = sortSelect ? sortSelect.value : "roi_desc";
   const sortMap = {
     roi_desc: (a, b) => b["ROI"] - a["ROI"],
     cost_desc: (a, b) => b["成本"] - a["成本"],
@@ -866,7 +904,14 @@ function applyFilterAndSort() {
     orders_desc: (a, b) => b["SKU 订单数"] - a["SKU 订单数"],
     ctr_desc: (a, b) => b["商品广告点击率"] - a["商品广告点击率"]
   };
-  filteredRows.sort(sortMap[sortValue]);
+  filteredRows.sort(sortMap[sortValue] || sortMap.roi_desc);
+
+  if (gmvFilterMeta) {
+    const hasFilter = keywords.length || pubDateFrom || orderFilter;
+    gmvFilterMeta.textContent = (hasFilter && rows.length)
+      ? tt("gmv.filter.meta", { count: filteredRows.length, total: rows.length })
+      : "";
+  }
 
   gmvPage = 1;
   renderGmvVideoCards(filteredRows);
@@ -937,21 +982,32 @@ function renderAlerts(data) {
 }
 
 if (fileInput) {
-  fileInput.addEventListener("change", event => {
-    const file = event.target.files[0];
-    if (!file) return;
-    fileMeta.textContent = `已选择：${file.name}`;
+  fileInput.addEventListener("change", async event => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
 
-    const reader = new FileReader();
-    reader.onload = e => {
-    rows = parseSheet(e.target.result);
-    const currencyRow = rows.find(r => r["货币"]);
-    if (currencyRow && currencyRow["货币"]) {
-      gmvBaseCurrency = normalizeCurrency(currencyRow["货币"]);
-    } else {
-      gmvBaseCurrency = "IDR";
-    }
-    currentSummary = updateKpis(rows);
+    fileMeta.textContent = files.length === 1
+      ? tt("gmv.upload.selected", { name: files[0].name })
+      : tt("gmv.upload.parsing", { count: files.length });
+
+    try {
+      const merged = [];
+      const sourceFiles = [];
+      for (const file of files) {
+        const buffer = await file.arrayBuffer();
+        const parsed = parseSheet(buffer);
+        parsed.forEach(r => { r.__source = file.name; });
+        merged.push(...parsed);
+        sourceFiles.push(file.name);
+      }
+      rows = merged;
+
+      const currencyRow = rows.find(r => r["货币"]);
+      gmvBaseCurrency = currencyRow && currencyRow["货币"]
+        ? normalizeCurrency(currencyRow["货币"])
+        : "IDR";
+
+      currentSummary = updateKpis(rows);
       updateInFlight(rows);
       renderCharts(currentSummary);
 
@@ -960,14 +1016,25 @@ if (fileInput) {
 
       renderRecommendations(rows);
       renderAggregateTable(accountTable, buildAggregate(rows, "TikTok 账号"));
-    renderAggregateTable(typeTable, buildAggregate(rows, "创意作品类型"));
-    renderAggregateTable(sourceTable, buildAggregate(rows, "视频来源"));
+      renderAggregateTable(typeTable, buildAggregate(rows, "创意作品类型"));
+      renderAggregateTable(sourceTable, buildAggregate(rows, "视频来源"));
 
-    recentGmvPage = 1;
-    renderRecentGmvVideos(rows);
-    applyFilterAndSort();
-    };
-    reader.readAsArrayBuffer(file);
+      recentGmvPage = 1;
+      renderRecentGmvVideos(rows);
+      applyFilterAndSort();
+
+      if (files.length > 1) {
+        fileMeta.textContent = tt("gmv.upload.merged", {
+          files: files.length,
+          rows: rows.length.toLocaleString()
+        });
+      } else {
+        fileMeta.textContent = tt("gmv.upload.selected", { name: files[0].name });
+      }
+    } catch (err) {
+      console.error(err);
+      fileMeta.textContent = tt("gmv.upload.failed", { msg: err && err.message ? err.message : String(err) });
+    }
   });
 }
 
@@ -989,6 +1056,15 @@ if (applyThresholdBtn) {
 
 if (searchInput) searchInput.addEventListener("input", applyFilterAndSort);
 if (sortSelect) sortSelect.addEventListener("change", applyFilterAndSort);
+if (gmvPubDateFrom) gmvPubDateFrom.addEventListener("change", applyFilterAndSort);
+if (gmvOrderFilter) gmvOrderFilter.addEventListener("change", applyFilterAndSort);
+if (gmvFilterReset) {
+  gmvFilterReset.addEventListener("click", () => {
+    if (gmvPubDateFrom) gmvPubDateFrom.value = "";
+    if (gmvOrderFilter) gmvOrderFilter.value = "";
+    applyFilterAndSort();
+  });
+}
 if (downloadCsvBtn) setupDownload();
 
 if (recommendationsEl) renderRecommendations([]);

@@ -27,8 +27,12 @@
       "gmv.sub": "上传 GMV MAX 后台导出的创意数据报表，自动生成关键指标、趋势洞察与可执行优化建议。",
       "gmv.upload.title": "导入报表",
       "gmv.upload.button": "选择 Excel 文件",
-      "gmv.upload.hint": "支持 GMV MAX 导出的 Excel 报表",
+      "gmv.upload.hint": "支持 GMV MAX 导出的 Excel 报表（可一次选多个文件，自动合并）",
       "gmv.upload.empty": "尚未导入文件",
+      "gmv.upload.selected": "已选择：{name}",
+      "gmv.upload.parsing": "已选择 {count} 个文件，正在解析…",
+      "gmv.upload.merged": "已合并 {files} 个文件 · 共 {rows} 行数据",
+      "gmv.upload.failed": "读取失败：{msg}",
       "gmv.section.kpi": "关键指标",
       "gmv.section.recent": "近七天新增GMV视频",
       "gmv.section.inflight": "在投视频播放数据",
@@ -269,6 +273,14 @@
       "note.total_likes": "Shoppable likes",
       "note.total_comments": "Shoppable comments",
 
+      "kpi.new_converting": "近7天新出单视频",
+      "note.new_converting": "近7天内发布 且 SKU 订单 > 0",
+      "gmv.filter.pubDateFrom": "发布时间从",
+      "gmv.filter.orderStatus": "订单筛选",
+      "gmv.filter.has_order": "有订单",
+      "gmv.filter.no_order": "无订单",
+      "gmv.filter.meta": "已筛选 {count} 个视频（共 {total} 个）",
+
       "inflight.impressions": "投放中曝光",
       "inflight.cost": "投放中成本",
       "inflight.revenue": "投放中收入",
@@ -380,7 +392,19 @@
       "index.card.gmv.cta": "进入看板",
       "index.card.video.cta": "进入看板",
       "index.card.script.cta": "开始生成",
-      "index.card.order.cta": "进入分析"
+      "index.card.order.cta": "进入分析",
+
+      "order.mode.join": "关联分析",
+      "order.mode.join.title": "两表关联",
+      "order.mode.join.desc": "— 店铺 × 达人 · 匹配率 / 省份 / 真实完成率",
+      "join.section.aggregate": "关联分析",
+      "join.aggregate.pill": "店铺 × 达人 · Order ID 关联",
+      "join.agg.creatorCompletion": "达人 · 真实完成率",
+      "join.agg.province": "达人订单 · 省份分布",
+      "join.agg.contentProvince": "热门内容 · 省份流向",
+      "join.section.detail": "关联明细",
+      "join.help.title": "关联分析是什么？",
+      "join.help.body": "同时上传店铺订单和达人订单后，系统按 Order ID 匹配两张表，让你看到：达人单的真实店铺完成状态、买家省份分布、哪条视频带货哪个地区。"
     },
     en: {
       "common.brand": "CusCus Workspace",
@@ -431,8 +455,12 @@
       "gmv.sub": "Upload GMV MAX export to generate KPIs, trends, and actionable insights.",
       "gmv.upload.title": "Import Report",
       "gmv.upload.button": "Choose Excel",
-      "gmv.upload.hint": "Supports GMV MAX export",
+      "gmv.upload.hint": "GMV MAX Excel export (multi-file supported, auto-merged)",
       "gmv.upload.empty": "No file selected",
+      "gmv.upload.selected": "Selected: {name}",
+      "gmv.upload.parsing": "{count} files selected, parsing…",
+      "gmv.upload.merged": "Merged {files} files · {rows} rows total",
+      "gmv.upload.failed": "Read failed: {msg}",
       "gmv.section.kpi": "Key Metrics",
       "gmv.section.recent": "New GMV Videos (Last 7 Days)",
       "gmv.section.inflight": "In-flight Video Stats",
@@ -674,6 +702,14 @@
       "note.total_likes": "Shoppable likes",
       "note.total_comments": "Shoppable comments",
 
+      "kpi.new_converting": "New Converting Videos (7d)",
+      "note.new_converting": "Published in last 7d · SKU orders > 0",
+      "gmv.filter.pubDateFrom": "Published after",
+      "gmv.filter.orderStatus": "Order filter",
+      "gmv.filter.has_order": "Has orders",
+      "gmv.filter.no_order": "No orders",
+      "gmv.filter.meta": "Showing {count} videos (of {total})",
+
       "inflight.impressions": "Active Impressions",
       "inflight.cost": "Active Cost",
       "inflight.revenue": "Active Revenue",
@@ -763,7 +799,19 @@
       "script.batch_unit": "versions",
       "script.batch_export": "Export CSV",
 
-      "common.nav.script": "Script Gen"
+      "common.nav.script": "Script Gen",
+
+      "order.mode.join": "Cross Analysis",
+      "order.mode.join.title": "Cross Join",
+      "order.mode.join.desc": "— Shop × Affiliate · match rate / province / real completion",
+      "join.section.aggregate": "Cross Analysis",
+      "join.aggregate.pill": "Shop × Affiliate · Order ID Join",
+      "join.agg.creatorCompletion": "Creator · Real Completion Rate",
+      "join.agg.province": "Affiliate Orders · Province Distribution",
+      "join.agg.contentProvince": "Top Content · Province Flow",
+      "join.section.detail": "Joined Detail",
+      "join.help.title": "What is Cross Analysis?",
+      "join.help.body": "Upload both shop orders and affiliate orders. The system joins them by Order ID to show: real completion status of affiliate orders, buyer province distribution, and which videos drive orders in which regions."
     }
   };
 

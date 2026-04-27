@@ -51,9 +51,9 @@
         <div class="upload-title" data-i18n="gmv.upload.title">导入报表</div>
         <label class="upload-btn">
           <span data-i18n="gmv.upload.button">选择 Excel 文件</span>
-          <input id="fileInput" type="file" accept=".xlsx,.xls" />
+          <input id="fileInput" type="file" accept=".xlsx,.xls" multiple />
         </label>
-        <div class="upload-hint" data-i18n="gmv.upload.hint">支持 GMV MAX 导出的 Excel 报表</div>
+        <div class="upload-hint" data-i18n="gmv.upload.hint">支持 GMV MAX 导出的 Excel 报表（可一次选多个文件，自动合并）</div>
         <div id="fileMeta" class="upload-meta" data-i18n="gmv.upload.empty">尚未导入文件</div>
       </div>
     </header>
@@ -182,6 +182,31 @@
           </select>
         </div>
       </div>
+
+      <!-- 新出单视频筛选 -->
+      <div class="filter-panel">
+        <div class="filter-row">
+          <div class="filter-item">
+            <label data-i18n="gmv.filter.pubDateFrom">发布时间从</label>
+            <input id="gmvPubDateFrom" type="date" class="search" />
+          </div>
+          <div class="filter-item">
+            <label data-i18n="gmv.filter.orderStatus">订单筛选</label>
+            <select id="gmvOrderFilter" class="select">
+              <option value="" data-i18n="order.filter.all">全部</option>
+              <option value="has" data-i18n="gmv.filter.has_order">有订单</option>
+              <option value="none" data-i18n="gmv.filter.no_order">无订单</option>
+            </select>
+          </div>
+          <div class="filter-item" style="align-self:flex-end">
+            <button class="ghost" id="gmvFilterReset" data-i18n="order.filter.reset">重置筛选</button>
+          </div>
+        </div>
+      </div>
+      <div class="filter-meta">
+        <span id="gmvFilterMeta"></span>
+      </div>
+
       <div id="gmvVideoGrid" class="video-grid"></div>
       <div id="gmvPagination" class="pagination"></div>
     </section>
