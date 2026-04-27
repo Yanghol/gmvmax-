@@ -1662,11 +1662,6 @@ body[data-tool="order"]  .app > .hero::after  { background: var(--sun); }
 }
 
 .mode-tab:hover { color: var(--ink); }
-.mode-tab:disabled {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
 
 .mode-tab.active {
   background: var(--ink);
