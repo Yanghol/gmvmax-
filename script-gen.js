@@ -194,9 +194,9 @@
       },
       manual: {
         title: uiLang === "en" ? "Manual Mode" : "手动配置模式",
-        desc: uiLang === "en" ? "Choose product, content type, duration, and optional inputs yourself." : "自己选择产品、视频类型、时长和补充信息。",
+        desc: uiLang === "en" ? "Choose the type, then write each script block yourself." : "选好视频类型后，自己填写每一段脚本。",
         step: uiLang === "en" ? "① Select Product" : "① 选择产品",
-        button: uiLang === "en" ? "Generate Script" : "生成脚本"
+        button: uiLang === "en" ? "Create Manual Script" : "生成手动脚本"
       },
       change: uiLang === "en" ? "Change Mode" : "重新选择模式"
     };
@@ -209,6 +209,7 @@
     gate.hidden = !!state.mode;
     workflow.hidden = !state.mode;
     document.querySelectorAll("[data-manual-only]").forEach(el => { el.hidden = state.mode === "auto"; });
+    document.querySelectorAll("[data-auto-only]").forEach(el => { el.hidden = state.mode === "manual"; });
     document.querySelectorAll(".script-mode-card").forEach(btn => btn.classList.toggle("selected", btn.dataset.scriptMode === state.mode));
     if (!state.mode) return;
     const copy = modeText(), current = copy[state.mode];
@@ -222,6 +223,7 @@
       renderMode();
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
+    renderManualEditor();
   }
   function renderProducts() {
     const grid = document.getElementById("productGrid"), uiLang = getLang();
@@ -236,12 +238,40 @@
   function renderVideoTypes() {
     const row = document.getElementById("videoTypeRow"), uiLang = getLang();
     row.innerHTML = VIDEO_TYPES.map(vt => { const info = uiLang==="en"?vt.en:vt.zh, sel = state.videoType===vt.id?" selected":""; return `<button class="option-btn${sel}" data-id="${vt.id}"><span class="opt-icon">${vt.icon}</span>${escHtml(info.name)}<span class="opt-desc">${escHtml(info.desc)}</span></button>`; }).join("");
-    row.querySelectorAll(".option-btn").forEach(b => b.addEventListener("click", () => { state.videoType = b.dataset.id; renderVideoTypes(); }));
+    row.querySelectorAll(".option-btn").forEach(b => b.addEventListener("click", () => { state.videoType = b.dataset.id; renderVideoTypes(); renderManualEditor(); }));
   }
   function renderDurations() {
     const row = document.getElementById("durationRow"), uiLang = getLang();
     row.innerHTML = DURATIONS.map(d => { const info = uiLang==="en"?d.en:d.zh, sel = state.duration===d.id?" selected":""; return `<button class="option-btn${sel}" data-id="${d.id}">${escHtml(info.name)}<span class="opt-desc">${escHtml(info.desc)}</span></button>`; }).join("");
     row.querySelectorAll(".option-btn").forEach(b => b.addEventListener("click", () => { state.duration = b.dataset.id; renderDurations(); }));
+  }
+  function renderManualEditor() {
+    const editor = document.getElementById("manualScriptEditor");
+    if (!editor || state.mode !== "manual") return;
+    const uiLang = getLang();
+    const existing = {};
+    ["hook","pain","product","effect","cta"].forEach(seg => {
+      existing[seg] = document.getElementById(`manual_${seg}`)?.value || "";
+    });
+    if (!state.videoType) {
+      editor.innerHTML = `<div class="manual-empty">${uiLang==="en"?"Choose a video type first, then the writing blocks will appear here.":"先选择视频类型，这里会出现分段填写栏。"}</div>`;
+      return;
+    }
+    const dirs = DIRECTIONS[state.videoType]?.zh || DIRECTIONS.oral.zh;
+    const fields = [
+      ["hook", "Hook / 开头抓眼球", dirs.hook, "前 3 秒怎么抓住用户？"],
+      ["pain", "痛点 / 共鸣", dirs.pain, "妈妈为什么会停下来听？"],
+      ["product", "产品卖点 / 解决方案", dirs.product, "产品怎么解决这个问题？"],
+      ["effect", "效果 / 证明", dirs.effect, "使用后效果、宝宝反应或社会证明。"],
+      ["cta", "CTA / 行动号召", dirs.cta, "引导点击购物车、下单或领取优惠。"]
+    ];
+    editor.innerHTML = `<div class="manual-script-grid">${fields.map(([id,label,tip,placeholder]) => `
+      <div class="manual-script-field ${id}">
+        <label for="manual_${id}">${escHtml(label)}</label>
+        <textarea id="manual_${id}" class="search manual-script-input" rows="5" placeholder="${escHtml(placeholder)}">${escHtml(existing[id] || "")}</textarea>
+        <span class="manual-script-tip">${escHtml(tip)}</span>
+      </div>
+    `).join("")}</div>`;
   }
   function renderRefCard() {
     const card = document.getElementById("refCard");
@@ -270,7 +300,32 @@
     renderVideoTypes();
     renderDurations();
   }
+  function readManualScripts() {
+    if (!state.duration) state.duration = "30s";
+    const p = PRODUCTS.find(x=>x.id===state.product), dur = DURATIONS.find(x=>x.id===state.duration) || DURATIONS[1], vType = state.videoType;
+    const dirs = DIRECTIONS[vType] || DIRECTIONS.oral;
+    const values = {};
+    ["hook","pain","product","effect","cta"].forEach(seg => {
+      values[seg] = (document.getElementById(`manual_${seg}`)?.value || "").trim();
+    });
+    const hasText = Object.values(values).some(Boolean);
+    if (!hasText) return null;
+    const scripts = {};
+    ["zh","en","id"].forEach(lang => {
+      scripts[lang] = {
+        hook: { text: values.hook, direction: dirs[lang].hook, timing: dur.timing.hook },
+        pain: { text: values.pain, direction: dirs[lang].pain, timing: dur.timing.pain },
+        product: { text: values.product, direction: dirs[lang].product, timing: dur.timing.product },
+        effect: { text: values.effect, direction: dirs[lang].effect, timing: dur.timing.effect },
+        cta: { text: values.cta, direction: dirs[lang].cta, timing: dur.timing.cta }
+      };
+    });
+    state.generated = scripts;
+    saveHistory({ time:new Date().toISOString(), mode:"manual", productId:state.product, productName:p.zh.name, videoType:state.videoType, duration:state.duration, promo:"", extra:"", customHook:"", scripts });
+    return scripts;
+  }
   function generateScript() {
+    if (state.mode === "manual") return readManualScripts();
     prepareAutoChoices();
     const p = PRODUCTS.find(x=>x.id===state.product), dur = DURATIONS.find(x=>x.id===state.duration), vType = state.videoType;
     const promo = document.getElementById("promoInput").value.trim(), extra = document.getElementById("extraInput").value.trim(), customHook = document.getElementById("hookInput").value.trim();
@@ -285,7 +340,7 @@
       scripts[lang] = { hook:{text:hook,direction:dirs.hook,timing:dur.timing.hook}, pain:{text:pain,direction:dirs.pain,timing:dur.timing.pain}, product:{text:productText,direction:dirs.product,timing:dur.timing.product}, effect:{text:effectText,direction:dirs.effect,timing:dur.timing.effect}, cta:{text:ctaText,direction:dirs.cta,timing:dur.timing.cta} };
     });
     state.generated = scripts;
-    saveHistory({ time:new Date().toISOString(), productId:state.product, productName:p.zh.name, videoType:state.videoType, duration:state.duration, promo, extra, customHook, scripts });
+    saveHistory({ time:new Date().toISOString(), mode:"auto", productId:state.product, productName:p.zh.name, videoType:state.videoType, duration:state.duration, promo, extra, customHook, scripts });
   }
 
   /* === RENDER OUTPUT === */
@@ -396,19 +451,23 @@
   function bindEvents() {
     document.querySelectorAll(".script-mode-card").forEach(btn => btn.addEventListener("click", () => {
       state.mode = btn.dataset.scriptMode;
+      if (state.mode === "manual" && !state.duration) state.duration = "30s";
       state.generated = null;
       document.getElementById("outputSection").style.display = "none";
       renderMode();
+      renderDurations();
       document.getElementById("scriptWorkflow").scrollIntoView({ behavior: "smooth", block: "start" });
     }));
     document.getElementById("generateBtn").addEventListener("click",()=>{
       if (!state.mode) { showToast(getLang()==="en"?"Choose a mode first":"请先选择生成模式"); return; }
       if (state.mode === "auto") {
         if (!state.product) { showToast(getLang()==="en"?"Select a product first":"请先选择产品"); return; }
-      } else if(!state.product||!state.videoType||!state.duration) {
-        showToast(getLang()==="en"?"Please select product, type, and duration":"请先选择产品、视频类型和时长"); return;
+      } else if(!state.product||!state.videoType) {
+        showToast(getLang()==="en"?"Please select product and video type":"请先选择产品和视频类型"); return;
       }
-      generateScript();state.outputLang="zh";renderOutput();renderHistory();
+      const scripts = generateScript();
+      if (state.mode === "manual" && !scripts) { showToast(getLang()==="en"?"Write at least one script block":"请至少填写一栏脚本内容"); return; }
+      state.outputLang="zh";renderOutput();renderHistory();
     });
     document.getElementById("copyBtn").addEventListener("click",copyScript);
     document.getElementById("regenerateBtn").addEventListener("click",()=>{if(!state.product||!state.videoType||!state.duration)return;generateScript();renderOutput();renderHistory();});

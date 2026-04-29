@@ -55,7 +55,7 @@
         <button class="script-mode-card" type="button" data-script-mode="manual">
           <span class="mode-card-icon">🎛</span>
           <span class="mode-card-title">手动配置</span>
-          <span class="mode-card-desc">自己选择产品、视频类型、时长和补充信息。</span>
+          <span class="mode-card-desc">选好视频类型后，自己填写每一段脚本。</span>
         </button>
       </div>
     </section>
@@ -84,8 +84,16 @@
       <div class="option-row" id="durationRow"></div>
     </section>
 
+    <section class="section manual-script-panel" data-manual-only>
+      <div class="section-header">
+        <h2>④ 手动填写脚本</h2>
+        <span class="pill">选好类型后，在下面分段写稿</span>
+      </div>
+      <div id="manualScriptEditor"></div>
+    </section>
+
     <!-- Step 4: 自定义输入 -->
-    <section class="section">
+    <section class="section" data-auto-only>
       <div class="section-header"><h2 data-i18n="script.step4">④ 补充信息（可选）</h2></div>
       <div class="custom-inputs">
         <div class="input-group">
@@ -106,7 +114,7 @@
     <!-- Generate + Batch -->
     <section class="section center" style="flex-direction:column;gap:16px;display:flex;align-items:center">
       <button class="upload-btn gen-btn" id="generateBtn" data-i18n="script.generate">生成脚本</button>
-      <div class="batch-row">
+      <div class="batch-row" data-auto-only>
         <label data-i18n="script.batch_label" style="color:var(--muted);font-size:0.85rem">批量生成</label>
         <input type="number" id="batchCount" class="search" value="5" min="1" max="30" style="width:60px;text-align:center" />
         <label style="color:var(--muted);font-size:0.85rem" data-i18n="script.batch_unit">版</label>
