@@ -156,7 +156,6 @@
               <th data-i18n="cost.col.daily">日常价</th>
               <th data-i18n="cost.col.small">小促价</th>
               <th data-i18n="cost.col.big">大促价</th>
-              <th>赠品成本/件</th>
               <th>到岸小计</th>
               <th data-i18n="cost.col.batch">批次</th>
               <th data-i18n="cost.col.notes">备注</th>
@@ -165,11 +164,28 @@
           <tbody id="costTableBody"></tbody>
         </table>
       </div>
+      <div id="standaloneGiftDetails" class="gift-detail-block" hidden>
+        <div class="table-title">单独选择的赠品明细</div>
+        <div class="table-container">
+          <table class="order-table">
+            <thead>
+              <tr>
+                <th>赠品</th>
+                <th>SKU</th>
+                <th>数量</th>
+                <th>到仓成本/件</th>
+                <th>赠品小计</th>
+              </tr>
+            </thead>
+            <tbody id="giftDetailBody"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <section class="section help">
       <h2 data-i18n="cost.help.title">价格库说明</h2>
-      <p data-i18n="cost.help.body">选择产品中文名并输入数量后，系统按日常价（不低于）加上赠品库「到仓成本」合计到岸成本；赠品成本按固定汇率 1 CNY = 2500 IDR 换算。价格明细会在计算后显示，并保留 SKU、赠品与四档价格用于复核。</p>
+      <p data-i18n="cost.help.body">选择产品中文名、赠品中文名并输入数量后，系统按内置产品成本和赠品库「到仓成本」合计到岸成本；所有成本按固定汇率 1 CNY = 2500 IDR 换算。价格明细会在计算后显示，并保留 SKU、赠品与四档价格用于复核。</p>
     </section>
   </main>
 

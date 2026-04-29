@@ -19,17 +19,17 @@
         id: ["Tekstur es krim, ringan dan tidak berminyak","Dirancang khusus untuk kulit sensitif anak","Cepat menyerap, melembapkan tahan lama","Formula lembut, tanpa bahan keras","Sensasi dingin yang disukai anak-anak","Bebas alkohol, pewangi, dan pewarna","Telah diuji keamanan dermatologis","Langsung menyerap, tidak meninggalkan residu","Bisa dipakai semua musim — tidak berat di musim panas","Mengunci kelembapan hingga 8 jam","Ekstrak tumbuhan alami yang dipercaya ibu"]
       },
       hooks: {
-        zh: ["宝宝涂了这个霜，居然说"妈妈再来一点"！","这个冰沙霜让我女儿的红脸蛋消失了！","别再给孩子用大人的面霜了！","印尼妈妈们都在囤的儿童面霜！","一涂就凉的面霜？宝宝抢着要涂！","面霜居然能让宝宝笑着护肤？","夏天也不油腻的宝宝面霜找到了！","这个质地，涂上去就像冰淇淋一样！","后悔没早发现！宝宝用了皮肤滑滑的","3秒吸收的儿童面霜，你信吗？"],
+        zh: ["宝宝涂了这个霜，居然说“妈妈再来一点”！","这个冰沙霜让我女儿的红脸蛋消失了！","别再给孩子用大人的面霜了！","印尼妈妈们都在囤的儿童面霜！","一涂就凉的面霜？宝宝抢着要涂！","面霜居然能让宝宝笑着护肤？","夏天也不油腻的宝宝面霜找到了！","这个质地，涂上去就像冰淇淋一样！","后悔没早发现！宝宝用了皮肤滑滑的","3秒吸收的儿童面霜，你信吗？"],
         en: ["My kid asked me to put MORE cream on her face!","This ice cream moisturizer fixed my daughter's red cheeks!","Stop putting adult cream on your kids!","Indonesian moms are STOCKING UP on this cream!","A cream that feels cool on touch? Kids BEG for it!","A moisturizer that makes kids SMILE during skincare?","Finally — a summer cream that's NOT greasy!","This texture feels just like real ice cream!","Wish I found this sooner — baby's skin is SO smooth now","A kids' cream that absorbs in 3 seconds — believe it?"],
         id: ["Anak saya minta diolesin lagi dan lagi!","Krim ini bikin pipi merah anak saya hilang!","Jangan pakai krim dewasa untuk anak!","Ibu-ibu Indonesia lagi borong krim ini!","Krim yang dingin saat dioles? Anak-anak minta terus!","Krim yang bikin anak SENYUM saat skincare?","Akhirnya nemu krim musim panas yang NGGAK berminyak!","Teksturnya kayak es krim beneran!","Nyesel baru nemu sekarang — kulit anak jadi halus banget","Krim anak yang menyerap dalam 3 detik — percaya nggak?"]
       },
-      warn: { zh: "避免宣称"治疗湿疹"等医疗功效", en: "Avoid claiming medical benefits like 'treats eczema'", id: "Hindari klaim medis seperti 'mengobati eksim'" }
+      warn: { zh: "避免宣称“治疗湿疹”等医疗功效", en: "Avoid claiming medical benefits like 'treats eczema'", id: "Hindari klaim medis seperti 'mengobati eksim'" }
     },
     {
       id: "lotion", icon: "🧴", custom: false,
       zh: { name: "润肤乳", sub: "Body Lotion" }, en: { name: "Kids Body Lotion", sub: "" }, id_: { name: "Kids Body Lotion", sub: "" },
       pains: {
-        zh: ["换季宝宝全身干痒，抓得到处红印","洗完澡皮肤紧绷，宝宝不舒服哭闹","市面上的润肤乳香精味太重，不放心","涂了身体乳还是脱皮，保湿力不够","宝宝腿上胳膊上起白色干皮","每次穿衣服宝宝说痒，一看都是干纹","用了好几款润肤乳都不够滋润","宝宝抗拒涂身体乳，嫌粘粘的","一到秋冬宝宝就变"蛇皮"肌","担心润肤乳成分不安全"],
+        zh: ["换季宝宝全身干痒，抓得到处红印","洗完澡皮肤紧绷，宝宝不舒服哭闹","市面上的润肤乳香精味太重，不放心","涂了身体乳还是脱皮，保湿力不够","宝宝腿上胳膊上起白色干皮","每次穿衣服宝宝说痒，一看都是干纹","用了好几款润肤乳都不够滋润","宝宝抗拒涂身体乳，嫌粘粘的","一到秋冬宝宝就变“蛇皮”肌","担心润肤乳成分不安全"],
         en: ["Seasonal changes leave your child's skin dry and itchy","Skin feels tight after bath — baby gets fussy","Most lotions smell too artificial for kids","Applied lotion but still peeling — not moisturizing enough","White flaky patches on baby's arms and legs","Kid says clothes feel itchy — dry lines everywhere","Tried many lotions, none moisturize enough","Baby hates body lotion because it's sticky","Every fall/winter baby's skin looks like scales","Worried about lotion ingredient safety"],
         id: ["Pergantian musim bikin kulit anak kering dan gatal","Setelah mandi kulit terasa kencang, anak rewel","Kebanyakan lotion baunya terlalu kuat untuk anak","Sudah pakai lotion tapi masih mengelupas","Muncul bercak putih kering di tangan dan kaki anak","Anak bilang baju terasa gatal — ternyata kulit kering","Sudah coba banyak lotion, tidak ada yang cukup lembap","Anak nggak mau pakai lotion karena lengket","Setiap musim kemarau kulit anak jadi kasar","Khawatir bahan lotion tidak aman untuk anak"]
       },
@@ -43,7 +43,7 @@
         en: ["No more dry skin this season! Baby smooth all over","One bottle for your baby's whole-body moisture!","After bath, my kid runs to grab this lotion!","Say goodbye to scaly skin! Best kids' lotion ever","Finally — a lotion that doesn't stain clothes!","This lotion made my kid stretch out their arms willingly!","Hot weather? Your kid needs moisture even MORE!","Big bottle lasts 3 months — amazing value!","Your baby's skin deserves the gentlest care","One pump, one smooth stroke — full body moisturized!"],
         id: ["Ganti musim nggak takut lagi! Kulit anak halus terus","Satu botol untuk melembapkan seluruh tubuh anak!","Habis mandi, anak saya langsung minta diolesin ini!","Bye bye kulit kasar! Lotion anak terbaik","Akhirnya nemu lotion yang nggak nempel di baju!","Lotion ini bikin anak saya mau diolesin sendiri!","Cuaca panas? Kulit anak LEBIH butuh kelembapan!","Botol besar awet 3 bulan — hemat banget!","Kulit anak layak dapat perawatan paling lembut","Satu pompa, satu olesan — seluruh tubuh lembap!"]
       },
-      warn: { zh: "不要用"消除湿疹/皮炎"等描述", en: "Do not claim 'cures eczema/dermatitis'", id: "Jangan klaim 'menyembuhkan eksim/dermatitis'" }
+      warn: { zh: "不要用“消除湿疹/皮炎”等描述", en: "Do not claim 'cures eczema/dermatitis'", id: "Jangan klaim 'menyembuhkan eksim/dermatitis'" }
     },
     {
       id: "mousse", icon: "🫧", custom: false,
@@ -59,11 +59,11 @@
         id: ["Satu pompa langsung busa lembut","Formula asam amino, lembut & ringan","Tanpa air mata — tidak perih di mata","Tidak bikin kulit kering setelah cuci","Botol lucu yang disukai anak","Busa halus seperti permen kapas","Agen pembersih alami dari tumbuhan","pH rendah — melindungi lapisan kulit","Bebas sabun, tidak merusak kulit","Wajah terasa lembut dan halus setelah cuci"]
       },
       hooks: {
-        zh: ["从此宝宝不怕洗脸了！","这个泡泡让宝宝爱上洗脸！","无泪配方到底有多温和？看宝宝的反应就知道了","按一下就出来的绵密泡泡，宝宝玩疯了！","洗脸不哭的秘密，全靠这一瓶！","宝宝居然催我说"妈妈快洗脸"？！","再也不用追着宝宝洗脸了！","泡泡像棉花糖一样，宝宝当玩具玩！","妈妈们！别再用清水给宝宝洗脸了","这款慕斯让洗脸变成了宝宝最爱的游戏"],
+        zh: ["从此宝宝不怕洗脸了！","这个泡泡让宝宝爱上洗脸！","无泪配方到底有多温和？看宝宝的反应就知道了","按一下就出来的绵密泡泡，宝宝玩疯了！","洗脸不哭的秘密，全靠这一瓶！","宝宝居然催我说“妈妈快洗脸”？！","再也不用追着宝宝洗脸了！","泡泡像棉花糖一样，宝宝当玩具玩！","妈妈们！别再用清水给宝宝洗脸了","这款慕斯让洗脸变成了宝宝最爱的游戏"],
         en: ["My kid finally stopped crying during face wash!","This foam made my baby LOVE washing her face!","How gentle is tear-free? Watch my baby's reaction!","One pump of fluffy foam — my kid went CRAZY for it!","The secret to cry-free face washing — this bottle!","My baby actually said 'Mom, let's wash my face!'","No more chasing kids around for face washing!","Foam like cotton candy — kids treat it like a toy!","Moms! Stop using just water on your baby's face","This mousse turned face wash into baby's favorite game"],
         id: ["Akhirnya anak saya nggak takut cuci muka lagi!","Busa ini bikin anak saya suka cuci muka!","Seberapa lembut formula tanpa air mata? Lihat reaksi anak saya!","Satu pompa busa lembut — anak saya langsung senang!","Rahasia cuci muka tanpa tangisan — botol ini!","Anak saya malah bilang 'Ma, ayo cuci muka!'","Nggak perlu kejar-kejaran lagi waktu cuci muka!","Busanya kayak permen kapas — anak main-main terus!","Ibu-ibu! Jangan cuma pakai air untuk cuci muka anak","Mousse ini bikin cuci muka jadi permainan favorit anak"]
       },
-      warn: { zh: "不要宣称"杀菌消毒"功效", en: "Don't claim 'antibacterial/disinfecting' effects", id: "Jangan klaim efek 'antibakteri/disinfektan'" }
+      warn: { zh: "不要宣称“杀菌消毒”功效", en: "Don't claim 'antibacterial/disinfecting' effects", id: "Jangan klaim efek 'antibakteri/disinfektan'" }
     },
     {
       id: "sunscreen", icon: "☀️", custom: false,
@@ -103,7 +103,7 @@
         en: ["No more chasing your kid around for hair wash!","Tear-free shampoo? My baby actually SMILED!","The secret to cry-free hair washing — this bottle!","Hair so smooth after wash, the comb just glides through!","Fruity-scented shampoo — baby WANTS to wash hair now!","End the hair wash battle! This makes kids love it","SO much foam — kid was playing and washing at the same time!","2-in-1 wash & care — doubles your parenting efficiency!","Baby's hair always tangled? Try THIS!","Hot tropical weather? Safe for daily washing!"],
         id: ["Nggak perlu kejar-kejaran lagi waktu keramas!","Sampo tanpa air mata? Anak saya malah SENYUM!","Rahasia keramas tanpa tangisan — botol ini!","Rambut halus banget setelah keramas, sisir langsung lewat!","Sampo aroma buah — anak MINTA keramas sendiri!","Akhiri perang keramas! Ini bikin anak suka","Busanya BANYAK banget — anak main sambil keramas!","2-in-1 cuci & rawat — efisiensi ngurus anak 2x lipat!","Rambut anak selalu kusut? Coba INI!","Cuaca tropis panas? Aman untuk keramas setiap hari!"]
       },
-      warn: { zh: "不要宣称"防脱发""生发"等功效", en: "Don't claim 'prevents hair loss' or 'promotes growth'", id: "Jangan klaim 'mencegah rambut rontok' atau 'mempercepat pertumbuhan'" }
+      warn: { zh: "不要宣称“防脱发”“生发”等功效", en: "Don't claim 'prevents hair loss' or 'promotes growth'", id: "Jangan klaim 'mencegah rambut rontok' atau 'mempercepat pertumbuhan'" }
     },
     {
       id: "bodywash", icon: "🛁", custom: false,
@@ -123,7 +123,7 @@
         en: ["My kid now BEGS for bath time!","So much foam, my baby went crazy playing with it!","Finally found a body wash my kid doesn't resist!","No need for lotion after — this has built-in moisture!","Baby couldn't stop laughing in the bathtub!","One bottle for full-body clean — moms rejoice!","Bubble bath joy — your baby deserves it too!","Not too slippery, not too dry — just right!","A body wash safe for DAILY use — does it exist? YES!","Baby smells so good after bath — can't stop cuddling!"],
         id: ["Anak saya sekarang MINTA dimandiin!","Busanya banyak banget, anak saya senang main busa!","Akhirnya nemu sabun yang anak saya nggak tolak!","Nggak perlu lotion setelah mandi — ini sudah melembapkan!","Anak nggak berhenti ketawa di bak mandi!","Satu botol bersihkan seluruh tubuh — ibu lega!","Keseruan mandi busa — anak juga berhak menikmati!","Nggak terlalu licin, nggak kering — pas banget!","Sabun yang aman untuk mandi SETIAP HARI — ada nggak? ADA!","Anak wangi banget habis mandi — nggak tahan mau peluk!"]
       },
-      warn: { zh: "避免"杀菌99.9%"等未经验证的宣称", en: "Avoid unverified claims like 'kills 99.9% germs'", id: "Hindari klaim yang belum terverifikasi seperti 'membunuh 99,9% kuman'" }
+      warn: { zh: "避免“杀菌99.9%”等未经验证的宣称", en: "Avoid unverified claims like 'kills 99.9% germs'", id: "Hindari klaim yang belum terverifikasi seperti 'membunuh 99,9% kuman'" }
     }
   ];
 
@@ -141,7 +141,7 @@
   const DIRECTIONS = {
     oral: { zh: { hook: "正脸出镜，表情夸张，制造好奇", pain: "皱眉/无奈表情，共情妈妈", product: "举起产品展示，介绍核心卖点", effect: "展示使用后效果/宝宝反应", cta: "指向下方链接，强调限时" }, en: { hook: "Face camera, expressive, create curiosity", pain: "Frustrated look, empathize with moms", product: "Hold up product, highlight key benefit", effect: "Show results or baby's reaction", cta: "Point to link below, stress urgency" }, id: { hook: "Hadap kamera, ekspresi menarik, bikin penasaran", pain: "Ekspresi frustrasi, empati sama ibu-ibu", product: "Angkat produk, jelaskan manfaat utama", effect: "Tunjukkan hasil atau reaksi anak", cta: "Tunjuk link di bawah, tekankan terbatas" } },
     demo: { zh: { hook: "展示产品外观/质地特写", pain: "展示宝宝皮肤问题场景", product: "挤出产品，展示质地和涂抹过程", effect: "涂抹前后皮肤对比/宝宝开心反应", cta: "展示产品全貌+价格标签" }, en: { hook: "Close-up of product texture/packaging", pain: "Show child's skin issue scenario", product: "Squeeze product, show texture and application", effect: "Before/after skin or happy baby reaction", cta: "Full product shot + price tag" }, id: { hook: "Close-up tekstur/kemasan produk", pain: "Tunjukkan masalah kulit anak", product: "Keluarkan produk, tunjukkan tekstur dan cara pakai", effect: "Sebelum/sesudah kulit atau reaksi anak senang", cta: "Tampilkan produk lengkap + harga" } },
-    beforeafter: { zh: { hook: "先展示"使用前"的状态", pain: "放大问题细节，引起共鸣", product: "快速介绍产品+核心成分", effect: ""使用后"效果对比，配字幕", cta: "再次展示产品+引导购买" }, en: { hook: "Show the 'BEFORE' state", pain: "Zoom into the problem", product: "Quick product intro + key ingredient", effect: "'AFTER' result comparison with text overlay", cta: "Show product again + buy link" }, id: { hook: "Tunjukkan kondisi 'SEBELUM'", pain: "Zoom ke masalahnya", product: "Perkenalan produk singkat + bahan utama", effect: "Perbandingan hasil 'SESUDAH' dengan teks", cta: "Tunjukkan produk lagi + link beli" } },
+    beforeafter: { zh: { hook: "先展示“使用前”的状态", pain: "放大问题细节，引起共鸣", product: "快速介绍产品+核心成分", effect: "“使用后”效果对比，配字幕", cta: "再次展示产品+引导购买" }, en: { hook: "Show the 'BEFORE' state", pain: "Zoom into the problem", product: "Quick product intro + key ingredient", effect: "'AFTER' result comparison with text overlay", cta: "Show product again + buy link" }, id: { hook: "Tunjukkan kondisi 'SEBELUM'", pain: "Zoom ke masalahnya", product: "Perkenalan produk singkat + bahan utama", effect: "Perbandingan hasil 'SESUDAH' dengan teks", cta: "Tunjukkan produk lagi + link beli" } },
     skit: { zh: { hook: "生活场景切入，妈妈发现问题", pain: "妈妈担心/焦虑的表演", product: "闺蜜/家人推荐产品（自然植入）", effect: "场景转换，问题解决，宝宝开心", cta: "回到妈妈视角，推荐+链接" }, en: { hook: "Everyday scene — mom notices a problem", pain: "Mom worried/anxious acting", product: "Friend/family recommends product (natural placement)", effect: "Scene transition — problem solved, happy baby", cta: "Back to mom's POV — recommend + link" }, id: { hook: "Adegan sehari-hari — ibu menyadari masalah", pain: "Ibu khawatir/cemas (acting)", product: "Teman/keluarga rekomendasikan produk (natural)", effect: "Transisi adegan — masalah teratasi, anak senang", cta: "Kembali ke sudut pandang ibu — rekomendasi + link" } }
   };
   const SEG_LABELS = {
@@ -164,7 +164,7 @@
 
   /* === STATE === */
   let PRODUCTS = [...DEFAULT_PRODUCTS];
-  let state = { product: null, videoType: null, duration: null, outputLang: "zh", generated: null };
+  let state = { mode: null, product: null, videoType: null, duration: null, outputLang: "zh", generated: null };
   const STORAGE_KEYS = { HISTORY: "cuscus_script_history", CUSTOM_PRODUCTS: "cuscus_custom_products" };
 
   /* === STORAGE === */
@@ -183,12 +183,53 @@
   function showToast(msg) { let t = document.querySelector(".toast"); if(!t){t=document.createElement("div");t.className="toast";document.body.appendChild(t);} t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2000); }
 
   /* === RENDER === */
+  function modeText() {
+    const uiLang = getLang();
+    return {
+      auto: {
+        title: uiLang === "en" ? "Auto Mode" : "自动生成模式",
+        desc: uiLang === "en" ? "Pick a product, then the generator will choose type and duration for you." : "选择产品后，一键自动匹配视频类型和时长。",
+        step: uiLang === "en" ? "① Pick a product" : "① 选择产品，自动生成",
+        button: uiLang === "en" ? "Auto Generate Script" : "自动生成脚本"
+      },
+      manual: {
+        title: uiLang === "en" ? "Manual Mode" : "手动配置模式",
+        desc: uiLang === "en" ? "Choose product, content type, duration, and optional inputs yourself." : "自己选择产品、视频类型、时长和补充信息。",
+        step: uiLang === "en" ? "① Select Product" : "① 选择产品",
+        button: uiLang === "en" ? "Generate Script" : "生成脚本"
+      },
+      change: uiLang === "en" ? "Change Mode" : "重新选择模式"
+    };
+  }
+  function renderMode() {
+    const gate = document.getElementById("scriptModeGate");
+    const workflow = document.getElementById("scriptWorkflow");
+    const status = document.getElementById("scriptModeStatus");
+    if (!gate || !workflow || !status) return;
+    gate.hidden = !!state.mode;
+    workflow.hidden = !state.mode;
+    document.querySelectorAll("[data-manual-only]").forEach(el => { el.hidden = state.mode === "auto"; });
+    document.querySelectorAll(".script-mode-card").forEach(btn => btn.classList.toggle("selected", btn.dataset.scriptMode === state.mode));
+    if (!state.mode) return;
+    const copy = modeText(), current = copy[state.mode];
+    document.getElementById("productStepTitle").textContent = current.step;
+    document.getElementById("generateBtn").textContent = current.button;
+    status.innerHTML = `<div><span class="mode-kicker">${escHtml(current.title)}</span><p>${escHtml(current.desc)}</p></div><button class="ghost" id="changeScriptModeBtn">${escHtml(copy.change)}</button>`;
+    document.getElementById("changeScriptModeBtn").addEventListener("click", () => {
+      state.mode = null;
+      state.generated = null;
+      document.getElementById("outputSection").style.display = "none";
+      renderMode();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+  }
   function renderProducts() {
     const grid = document.getElementById("productGrid"), uiLang = getLang();
     grid.innerHTML = PRODUCTS.map(p => {
       const info = uiLang === "en" ? p.en : p.zh, sel = state.product === p.id ? " selected" : "";
       const badge = p.custom ? `<span class="custom-badge">${uiLang==="en"?"Custom":"自定义"}</span>` : "";
-      return `<div class="product-card${sel}" data-id="${p.id}"><span class="product-icon">${p.icon}</span><div class="product-name">${escHtml(info.name)}</div><div class="product-name-sub">${escHtml(info.sub||"")}</div>${badge}</div>`;
+      const tick = state.product === p.id ? `<span class="selected-mark">✓</span>` : "";
+      return `<div class="product-card${sel}" data-id="${p.id}">${tick}<span class="product-icon">${p.icon}</span><div class="product-name">${escHtml(info.name)}</div><div class="product-name-sub">${escHtml(info.sub||"")}</div>${badge}</div>`;
     }).join("");
     grid.querySelectorAll(".product-card").forEach(c => c.addEventListener("click", () => { state.product = c.dataset.id; renderProducts(); renderRefCard(); }));
   }
@@ -222,7 +263,15 @@
   }
 
   /* === GENERATE === */
+  function prepareAutoChoices() {
+    if (state.mode !== "auto") return;
+    state.videoType = pick(VIDEO_TYPES).id;
+    state.duration = pick(DURATIONS).id;
+    renderVideoTypes();
+    renderDurations();
+  }
   function generateScript() {
+    prepareAutoChoices();
     const p = PRODUCTS.find(x=>x.id===state.product), dur = DURATIONS.find(x=>x.id===state.duration), vType = state.videoType;
     const promo = document.getElementById("promoInput").value.trim(), extra = document.getElementById("extraInput").value.trim(), customHook = document.getElementById("hookInput").value.trim();
     const scripts = {};
@@ -345,7 +394,22 @@
 
   /* === EVENTS === */
   function bindEvents() {
-    document.getElementById("generateBtn").addEventListener("click",()=>{if(!state.product||!state.videoType||!state.duration){showToast(getLang()==="en"?"Please select product, type, and duration":"请先选择产品、视频类型和时长");return;}generateScript();state.outputLang="zh";renderOutput();renderHistory();});
+    document.querySelectorAll(".script-mode-card").forEach(btn => btn.addEventListener("click", () => {
+      state.mode = btn.dataset.scriptMode;
+      state.generated = null;
+      document.getElementById("outputSection").style.display = "none";
+      renderMode();
+      document.getElementById("scriptWorkflow").scrollIntoView({ behavior: "smooth", block: "start" });
+    }));
+    document.getElementById("generateBtn").addEventListener("click",()=>{
+      if (!state.mode) { showToast(getLang()==="en"?"Choose a mode first":"请先选择生成模式"); return; }
+      if (state.mode === "auto") {
+        if (!state.product) { showToast(getLang()==="en"?"Select a product first":"请先选择产品"); return; }
+      } else if(!state.product||!state.videoType||!state.duration) {
+        showToast(getLang()==="en"?"Please select product, type, and duration":"请先选择产品、视频类型和时长"); return;
+      }
+      generateScript();state.outputLang="zh";renderOutput();renderHistory();
+    });
     document.getElementById("copyBtn").addEventListener("click",copyScript);
     document.getElementById("regenerateBtn").addEventListener("click",()=>{if(!state.product||!state.videoType||!state.duration)return;generateScript();renderOutput();renderHistory();});
     document.querySelectorAll(".tab-btn").forEach(b=>b.addEventListener("click",()=>{state.outputLang=b.dataset.tab;renderOutput();}));
@@ -354,10 +418,10 @@
     const btt=document.getElementById("btt");
     window.addEventListener("scroll",()=>btt.classList.toggle("show",window.scrollY>400));
     btt.addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));
-    document.addEventListener("langchange",()=>{renderProducts();renderVideoTypes();renderDurations();renderRefCard();renderHistory();if(state.generated)renderOutput();});
+    document.addEventListener("langchange",()=>{renderMode();renderProducts();renderVideoTypes();renderDurations();renderRefCard();renderHistory();if(state.generated)renderOutput();});
   }
 
   /* === INIT === */
-  function init(){loadCustomProducts();renderProducts();renderVideoTypes();renderDurations();renderHistory();bindEvents();}
+  function init(){loadCustomProducts();renderMode();renderProducts();renderVideoTypes();renderDurations();renderHistory();bindEvents();}
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init);else init();
 })();

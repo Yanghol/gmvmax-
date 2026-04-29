@@ -83,6 +83,8 @@ const els = {
   resetFilters:   document.getElementById("resetFilters"),
   tableBody:      document.getElementById("costTableBody"),
   tableMeta:      document.getElementById("tableMeta"),
+  standaloneGiftDetails: document.getElementById("standaloneGiftDetails"),
+  giftDetailBody: document.getElementById("giftDetailBody"),
   exportBtn:      document.getElementById("exportBtn"),
   lookupInput:    document.getElementById("lookupInput"),
   lookupBtn:      document.getElementById("lookupBtn"),
@@ -117,6 +119,20 @@ let selectedGiftLines = [];
 let nextCalcRowId = 2;
 let nextGiftRowId = 2;
 const FX_IDR_PER_CNY = 2500;
+const PRODUCT_COST_CNY = {
+  "5263": 9,
+  "8995107505263": 9,
+  "5270": 9,
+  "8995107505270": 9,
+  "5256": 10,
+  "8995107505256": 10,
+  "0016": 10,
+  "8990144000016": 10,
+  "5294": 3.53,
+  "8995107505294": 3.53,
+  "5287": 3.28,
+  "8995107505287": 3.28
+};
 let displayCurrency = localStorage.getItem("currency") || "IDR";
 
 const tt = (key, vars) => {
@@ -203,11 +219,29 @@ function cnyToIdr(value) {
 }
 
 function unitLandedCost(row) {
-  return productUnitCost(row) + giftUnitCostIdr(row);
+  return productUnitCost(row);
 }
 
 function productUnitCost(row) {
-  return parseFloat(row[COL.dailyPrice]) || 0;
+  return cnyToIdr(productUnitCostCny(row));
+}
+
+function productUnitCostCny(row) {
+  const sku = String(row[COL.newSku] || "").replace(/\s|\n/g, "").trim();
+  const plan = String(row[COL.plan] || "");
+  if (!sku) return 0;
+  if (!sku.includes("+") && !sku.includes("*")) {
+    if (PRODUCT_COST_CNY[sku] !== undefined) return PRODUCT_COST_CNY[sku];
+    const short = Object.keys(PRODUCT_COST_CNY).find(code => sku.endsWith(code));
+    return short ? PRODUCT_COST_CNY[short] : 0;
+  }
+  return parseComposition(sku).reduce((sum, part) => {
+    const code = String(part.code || "").trim();
+    const cost = PRODUCT_COST_CNY[code] !== undefined
+      ? PRODUCT_COST_CNY[code]
+      : (PRODUCT_COST_CNY[Object.keys(PRODUCT_COST_CNY).find(k => code.endsWith(k))] || 0);
+    return sum + cost * part.qty;
+  }, 0);
 }
 
 function getGiftByName(name) {
@@ -399,11 +433,9 @@ function getCalculatorItems() {
   return Array.from(grouped.values()).map(item => ({
     ...item,
     productUnit: productUnitCost(item.row),
-    giftUnit: giftUnitCostIdr(item.row),
     giftItems: giftItemsForRow(item.row),
     unit: unitLandedCost(item.row),
     productSubtotal: productUnitCost(item.row) * item.qty,
-    giftSubtotal: giftUnitCostIdr(item.row) * item.qty,
     subtotal: unitLandedCost(item.row) * item.qty
   }));
 }
@@ -439,8 +471,7 @@ function renderCalculatorResult(items) {
   const extraGiftTotal = extraGifts.reduce((sum, item) => sum + item.subtotal, 0);
   const total = items.reduce((sum, item) => sum + item.subtotal, 0) + extraGiftTotal;
   const productTotal = items.reduce((sum, item) => sum + item.productSubtotal, 0);
-  const planGiftTotal = items.reduce((sum, item) => sum + item.giftSubtotal, 0);
-  const giftTotal = planGiftTotal + extraGiftTotal;
+  const giftTotal = extraGiftTotal;
   if (els.grandTotal) els.grandTotal.textContent = fmtCurrency(total);
   if (els.calcMeta) els.calcMeta.textContent = `${items.length} 个产品 · ${totalQty} 件 / ${extraGifts.length} 种赠品 · ${giftQty} 件`;
   if (!els.calcResult) return;
@@ -466,7 +497,7 @@ function renderCalculatorResult(items) {
             <strong>${escapeHtml(item.row[COL.plan])}</strong>
             <small>${escapeHtml(giftSummary(item.row))}</small>
           </span>
-          <span>产品 ${fmtCurrency(item.productUnit)} + 赠品 ${fmtCurrency(item.giftUnit)} × ${fmtNumber(item.qty)}</span>
+          <span>产品 ${fmtCurrency(item.productUnit)} × ${fmtNumber(item.qty)}</span>
           <strong>${fmtCurrency(item.subtotal)}</strong>
         </div>
       `).join("")}
@@ -624,9 +655,10 @@ function renderTable() {
   if (!els.tableMeta || !els.tableBody) return;
   const total = selectedCalcLines.length;
   els.tableMeta.textContent = `显示 ${viewRows.length.toLocaleString()} / ${total.toLocaleString()} 条`;
+  renderStandaloneGiftDetails();
 
   if (!viewRows.length) {
-    els.tableBody.innerHTML = `<tr><td colspan="15" style="text-align:center;color:#9aa3b2;padding:32px">无匹配记录</td></tr>`;
+    els.tableBody.innerHTML = `<tr><td colspan="14" style="text-align:center;color:#9aa3b2;padding:32px">无匹配记录</td></tr>`;
     return;
   }
 
@@ -636,7 +668,6 @@ function renderTable() {
     const calcLine = selectedCalcLines.find(item => item.row === r);
     const qty = calcLine ? calcLine.qty : 1;
     const subtotal = calcLine ? calcLine.subtotal : unitLandedCost(r);
-    const giftUnit = calcLine ? calcLine.giftUnit : giftUnitCostIdr(r);
     return `
       <tr>
         <td>
@@ -655,12 +686,30 @@ function renderTable() {
         <td class="amount-cell" style="color:#FF7500;font-weight:700">${fmtCurrency(r[COL.dailyPrice])}</td>
         <td class="amount-cell">${fmtCurrency(r[COL.smallPromo])}</td>
         <td class="amount-cell">${fmtCurrency(r[COL.bigPromo])}</td>
-        <td class="amount-cell" style="color:#9A7BE8;font-weight:900">${fmtCurrency(giftUnit)}</td>
         <td class="amount-cell" style="color:#2FB985;font-weight:900">${fmtCurrency(subtotal)}</td>
         <td style="font-size:12px">${escapeHtml(r[COL.batch] || "—")}</td>
         <td style="font-size:11px;color:#5E5E5E">${escapeHtml(r[COL.notes] || "")}</td>
       </tr>`;
-  }).join("");
+	  }).join("");
+}
+
+function renderStandaloneGiftDetails() {
+  if (!els.standaloneGiftDetails || !els.giftDetailBody) return;
+  if (!selectedGiftLines.length) {
+    els.standaloneGiftDetails.hidden = true;
+    els.giftDetailBody.innerHTML = "";
+    return;
+  }
+  els.standaloneGiftDetails.hidden = false;
+  els.giftDetailBody.innerHTML = selectedGiftLines.map(item => `
+    <tr>
+      <td><div class="product-name" style="font-weight:700">${escapeHtml(item.name)}</div></td>
+      <td class="order-id" style="font-family:monospace;font-size:12px">${escapeHtml(item.sku || "—")}</td>
+      <td class="amount-cell">${escapeHtml(fmtNumber(item.qty))}</td>
+      <td class="amount-cell" style="color:#9A7BE8;font-weight:900">${fmtCurrency(item.unitIdr)}</td>
+      <td class="amount-cell" style="color:#2FB985;font-weight:900">${fmtCurrency(item.subtotal)}</td>
+    </tr>
+  `).join("");
 }
 
 // ─── SKU 组合匹配辅助 ───────────────────────────────────────
@@ -828,13 +877,12 @@ function exportCSV() {
   if (!viewRows.length) { alert("没有数据可导出"); return; }
   const headers = [
     "销售方案", "新SKU编码", "旧SKU编码", "赠品", "赠品明细", "数量", "是否主推",
-    "划线价", "日常价", "小促价", "大促价", "赠品成本/件", "到岸小计", "上线时间", "上线批次", "备注", "产品经理"
+    "划线价", "日常价", "小促价", "大促价", "到岸小计", "上线时间", "上线批次", "备注", "产品经理"
   ];
   const data = viewRows.map(r => {
     const calcLine = selectedCalcLines.find(item => item.row === r);
     const qty = calcLine ? calcLine.qty : 1;
     const subtotal = calcLine ? calcLine.subtotal : unitLandedCost(r);
-    const giftUnit = calcLine ? calcLine.giftUnit : giftUnitCostIdr(r);
     return [
       r[COL.plan]       || "",
       r[COL.newSku]     || "",
@@ -847,7 +895,6 @@ function exportCSV() {
       parseFloat(r[COL.dailyPrice]) || "",
       parseFloat(r[COL.smallPromo]) || "",
       parseFloat(r[COL.bigPromo])   || "",
-      giftUnit || "",
       subtotal || "",
       fmtDate(r[COL.launchDate]),
       r[COL.batch]      || "",

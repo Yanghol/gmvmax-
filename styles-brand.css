@@ -1609,6 +1609,78 @@ body[data-tool="cost"] .app > .hero::after  { background: var(--purple); }
 .detail-value { color: var(--ink); font-weight: 600; word-break: break-all; }
 
 /* ───── Script 生成器组件 ───── */
+.script-mode-gate .section-header {
+  align-items: flex-start;
+}
+.script-mode-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.script-mode-card {
+  appearance: none;
+  border: 2.5px solid var(--line);
+  border-radius: 16px;
+  background: var(--cream);
+  box-shadow: 0 0 0 var(--line);
+  color: var(--ink);
+  cursor: pointer;
+  min-height: 156px;
+  padding: 20px;
+  text-align: left;
+  transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.script-mode-card:hover,
+.script-mode-card.selected {
+  transform: translate(-3px, -3px);
+  box-shadow: 6px 6px 0 var(--line);
+  background: var(--sun);
+}
+.mode-card-icon {
+  display: block;
+  font-size: 34px;
+  line-height: 1;
+  margin-bottom: 14px;
+}
+.mode-card-title {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 900;
+  margin-bottom: 6px;
+}
+.mode-card-desc {
+  display: block;
+  color: var(--ink-3);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+.script-mode-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  background: var(--mint);
+}
+.script-mode-status p {
+  margin: 4px 0 0;
+  color: var(--ink-2);
+  font-weight: 700;
+}
+.mode-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--ink);
+}
+.script-workflow[hidden],
+[data-manual-only][hidden] {
+  display: none !important;
+}
 .product-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
@@ -1625,9 +1697,41 @@ body[data-tool="cost"] .app > .hero::after  { background: var(--purple); }
   transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
 }
 .product-card:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--line); background: var(--paper); }
-.product-card.active { background: var(--orange); box-shadow: 4px 4px 0 var(--line); }
-.product-card .product-icon { font-size: 36px; line-height: 1; margin-bottom: 8px; }
-.product-card .product { font-weight: 900; font-size: 14px; color: var(--ink); }
+.product-card.active,
+.product-card.selected {
+  background: var(--orange);
+  box-shadow: 5px 5px 0 var(--line);
+  transform: translate(-2px, -2px);
+}
+.product-card.selected::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 2px dashed rgba(14, 14, 14, .38);
+  border-radius: 12px;
+  pointer-events: none;
+}
+.product-card .selected-mark {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--sun);
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1;
+  z-index: 1;
+}
+.product-card .product-icon { display: block; font-size: 36px; line-height: 1; margin-bottom: 8px; transition: transform .15s ease; }
+.product-card.selected .product-icon { transform: scale(1.18) rotate(-5deg); }
+.product-card .product,
+.product-card .product-name { font-weight: 900; font-size: 14px; color: var(--ink); max-width: none; white-space: normal; overflow: visible; text-overflow: clip; }
+.product-card .product-name-sub { font-size: 12px; color: var(--ink-3); font-weight: 700; margin-top: 4px; }
 .product-card .pain { font-size: 11.5px; color: var(--ink-3); font-weight: 600; margin-top: 4px; line-height: 1.45; }
 .product-card .custom-badge {
   position: absolute; top: 8px; right: 8px;
@@ -1670,7 +1774,8 @@ body[data-tool="cost"] .app > .hero::after  { background: var(--purple); }
   text-align: left;
 }
 .option-btn:hover { transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--line); background: var(--paper); }
-.option-btn.active { background: var(--mint); box-shadow: 4px 4px 0 var(--line); }
+.option-btn.active,
+.option-btn.selected { background: var(--mint); box-shadow: 4px 4px 0 var(--line); transform: translate(-2px, -2px); }
 .option-btn .opt-icon { font-size: 22px; }
 .option-btn .product { font-weight: 900; font-size: 13.5px; color: var(--ink); }
 .option-btn .opt-desc { font-size: 11px; color: var(--ink-3); font-weight: 600; }

@@ -443,7 +443,7 @@
       "cost.col.batch": "批次",
       "cost.col.notes": "备注",
       "cost.help.title": "价格库说明",
-      "cost.help.body": "选择产品中文名并输入数量后，系统按日常价（不低于）加上赠品库「到仓成本」合计到岸成本；赠品成本按固定汇率 1 CNY = 2500 IDR 换算。价格明细会在计算后显示，并保留 SKU、赠品与四档价格用于复核。",
+      "cost.help.body": "选择产品中文名、赠品中文名并输入数量后，系统按内置产品成本和赠品库「到仓成本」合计到岸成本；所有成本按固定汇率 1 CNY = 2500 IDR 换算。价格明细会在计算后显示，并保留 SKU、赠品与四档价格用于复核。",
       "cost.footer": "CusCus 产品成本计算器",
 
       "order.mode.join": "关联分析",
@@ -573,7 +573,7 @@
       "cost.col.batch": "Batch",
       "cost.col.notes": "Notes",
       "cost.help.title": "About the Pricing Library",
-      "cost.help.body": "Choose product names and quantities to calculate landed cost using Daily Price plus gift warehouse cost. Gift costs use the fixed rate 1 CNY = 2500 IDR. Price details appear after calculation and keep SKU, gifts, and all four price tiers for checking.",
+      "cost.help.body": "Choose product names, gift names, and quantities to calculate landed cost from built-in product costs plus gift warehouse cost. All costs use the fixed rate 1 CNY = 2500 IDR. Price details appear after calculation and keep SKU, gifts, and all four price tiers for checking.",
       "cost.footer": "CusCus Cost Calculator",
 
       "gmv.title": "CusCus GMV MAX Dashboard",

@@ -41,23 +41,45 @@
       </div>
     </header>
 
+    <section class="section script-mode-gate" id="scriptModeGate">
+      <div class="section-header">
+        <h2>选择生成模式</h2>
+        <span class="pill">先选模式，再进入工作台</span>
+      </div>
+      <div class="script-mode-grid">
+        <button class="script-mode-card" type="button" data-script-mode="auto">
+          <span class="mode-card-icon">⚡</span>
+          <span class="mode-card-title">自动生成</span>
+          <span class="mode-card-desc">只选产品，一键自动匹配视频类型和时长。</span>
+        </button>
+        <button class="script-mode-card" type="button" data-script-mode="manual">
+          <span class="mode-card-icon">🎛</span>
+          <span class="mode-card-title">手动配置</span>
+          <span class="mode-card-desc">自己选择产品、视频类型、时长和补充信息。</span>
+        </button>
+      </div>
+    </section>
+
+    <div class="script-workflow" id="scriptWorkflow" hidden>
+      <section class="section script-mode-status" id="scriptModeStatus"></section>
+
     <!-- Step 1: 选产品 -->
     <section class="section">
       <div class="section-header">
-        <h2 data-i18n="script.step1">① 选择产品</h2>
+        <h2 id="productStepTitle" data-i18n="script.step1">① 选择产品</h2>
         <button class="ghost" id="addProductBtn" data-i18n="script.add_product">+ 添加自定义产品</button>
       </div>
       <div class="product-grid" id="productGrid"></div>
     </section>
 
     <!-- Step 2: 视频类型 -->
-    <section class="section">
+    <section class="section" data-manual-only>
       <div class="section-header"><h2 data-i18n="script.step2">② 视频类型</h2></div>
       <div class="option-row" id="videoTypeRow"></div>
     </section>
 
     <!-- Step 3: 时长 -->
-    <section class="section">
+    <section class="section" data-manual-only>
       <div class="section-header"><h2 data-i18n="script.step3">③ 视频时长</h2></div>
       <div class="option-row" id="durationRow"></div>
     </section>
@@ -131,6 +153,7 @@
       </div>
       <div class="ref-card" id="refCard" style="display:none"></div>
     </section>
+    </div>
   </main>
 
   <footer class="footer" data-i18n="script.footer">CusCus脚本生成器</footer>
