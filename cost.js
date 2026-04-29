@@ -37,12 +37,38 @@ const PRICING_DATA = [
   { "产品销售方案": "防晒3+洁面+润肤乳2", "赠品": "防晒贴纸+铅笔+挂件", "旧SKU编码": "", "新改产品SKU编码": "0016*3+5263*1+5270*2", "是否当前主推": "", "划线价（不低于）": 921612, "日常价（不低于）": 576008, "小促价（不低于）": 460806, "大促价（不低于）": 345605, "上线时间": "2026-04-11", "上线批次": "第二批", "备注": "", "产品经理": "叶温丽" }
 ];
 
+// ─── 内置赠品库数据：来自「🎉项目概况表_产品_🎁 赠品库.xlsx」──────────────
+const GIFT_DATA = [
+  { name: "品牌物流箱", sku: "80000013", costCny: 1.1 },
+  { name: "贴纸", sku: "80000020", costCny: 1 },
+  { name: "铅笔", sku: "80000037", costCny: 0.491 },
+  { name: "水杯（粉紫色）", sku: "80000044", costCny: 10.969 },
+  { name: "挂件挂件-天使信者", sku: "80000051", costCny: 11.1096 },
+  { name: "挂件盲袋-星际旅者", sku: "80000068", costCny: 11.1096 },
+  { name: "挂件盲袋-浪趣玩家", sku: "80000075", costCny: 11.1096 },
+  { name: "伸缩购物袋-橙色", sku: "80000082", costCny: 5.5 },
+  { name: "伸缩购物袋-紫色", sku: "80000099", costCny: 5 },
+  { name: "环保购物袋", sku: "80000105", costCny: 4.5 },
+  { name: "亚克力钥匙扣", sku: "80000112", costCny: 3.373 },
+  { name: "洗漱包", sku: "80000129", costCny: 5.073 },
+  { name: "沐浴球", sku: "80000136", costCny: 2.583 },
+  { name: "品牌物流箱插画版", sku: "80000143", costCny: 2.08 },
+  { name: "香薰片（柚香芬芳）", sku: "80000150", costCny: 2.603 },
+  { name: "豪华礼盒-2025版", sku: "80000167", costCny: 2.78 },
+  { name: "礼盒用封口贴", sku: "80000174", costCny: 0.11 },
+  { name: "礼盒用品牌关怀卡片", sku: "80000181", costCny: 0.24 },
+  { name: "新水杯（橙绿）", sku: "80000198", costCny: 8.2 },
+  { name: "UV感应贴纸", sku: "80000204", costCny: 0.88 }
+];
+
 // ─── DOM refs ────────────────────────────────────────────────
 const els = {
   dataStatus:     document.getElementById("dataStatus"),
   kpiGrid:        document.getElementById("kpiGrid"),
   calcRows:       document.getElementById("calcRows"),
   addCalcRow:     document.getElementById("addCalcRow"),
+  giftRows:       document.getElementById("giftRows"),
+  addGiftRow:     document.getElementById("addGiftRow"),
   calculateBtn:   document.getElementById("calculateBtn"),
   clearCalcBtn:   document.getElementById("clearCalcBtn"),
   calcResult:     document.getElementById("calcResult"),
@@ -85,8 +111,11 @@ const COL = {
 let allRows  = PRICING_DATA.slice(); // 工作副本
 let viewRows = [];
 let calcRows = [{ id: 1, rowIndex: "", qty: 1 }];
+let giftCalcRows = [{ id: 1, giftIndex: "", qty: 1 }];
 let selectedCalcLines = [];
+let selectedGiftLines = [];
 let nextCalcRowId = 2;
+let nextGiftRowId = 2;
 const FX_IDR_PER_CNY = 2500;
 let displayCurrency = localStorage.getItem("currency") || "IDR";
 
@@ -168,8 +197,95 @@ function typeColor(type) {
   return { single: "#62B89A", bundle: "#9A7BE8", sample: "#FFB5A0" }[type] || "#9aa3b2";
 }
 
+function cnyToIdr(value) {
+  const n = parseFloat(value);
+  return isFinite(n) ? n * FX_IDR_PER_CNY : 0;
+}
+
 function unitLandedCost(row) {
+  return productUnitCost(row) + giftUnitCostIdr(row);
+}
+
+function productUnitCost(row) {
   return parseFloat(row[COL.dailyPrice]) || 0;
+}
+
+function getGiftByName(name) {
+  return GIFT_DATA.find(g => g.name === name) || null;
+}
+
+function giftDisplayName(gift) {
+  if (!gift) return "";
+  if (gift.name.includes("挂件")) return "挂件";
+  if (gift.name.includes("水杯")) return "水杯";
+  if (gift.name.includes("钥匙扣")) return "钥匙扣";
+  if (gift.name.includes("UV感应贴纸")) return "防晒贴纸";
+  return gift.name;
+}
+
+function matchGiftToken(token) {
+  const t = String(token || "").trim();
+  if (!t || t === "/") return null;
+  const exact = getGiftByName(t);
+  if (exact) return exact;
+  if (t.includes("防晒贴纸")) return getGiftByName("UV感应贴纸");
+  if (t.includes("钥匙扣")) return getGiftByName("亚克力钥匙扣");
+  if (t.includes("挂件")) return getGiftByName("挂件挂件-天使信者");
+  if (t.includes("水杯")) return getGiftByName("水杯（粉紫色）");
+  if (t.includes("贴纸")) return getGiftByName("贴纸");
+  if (t.includes("铅笔")) return getGiftByName("铅笔");
+  return null;
+}
+
+function matchSampleGiftToken(token) {
+  const t = String(token || "").trim();
+  if (!t) return null;
+  return allRows.find(r => String(r[COL.plan] || "").trim() === t && classifyType(r) === "sample") || null;
+}
+
+function giftItemsForRow(row) {
+  const giftText = String(row[COL.gift] || "").trim();
+  if (!giftText || giftText === "/") return [];
+  const items = [];
+  giftText.split("+").map(v => v.trim()).filter(Boolean).forEach(token => {
+    const sample = matchSampleGiftToken(token);
+    if (sample) {
+      items.push({
+        name: token,
+        sku: sample[COL.newSku] || "",
+        unitIdr: productUnitCost(sample),
+        unitCny: productUnitCost(sample) / FX_IDR_PER_CNY,
+        source: "产品小样"
+      });
+      return;
+    }
+    const gift = matchGiftToken(token);
+    if (!gift) {
+      items.push({ name: token, sku: "", unitIdr: 0, unitCny: 0, source: "未匹配" });
+      return;
+    }
+    items.push({
+      name: giftDisplayName(gift),
+      sku: gift.sku,
+      unitIdr: cnyToIdr(gift.costCny),
+      unitCny: gift.costCny,
+      source: "赠品库"
+    });
+  });
+  return items;
+}
+
+function giftUnitCostIdr(row) {
+  return giftItemsForRow(row).reduce((sum, item) => sum + (parseFloat(item.unitIdr) || 0), 0);
+}
+
+function giftSummary(row) {
+  const items = giftItemsForRow(row);
+  if (!items.length) return "—";
+  return items.map(item => {
+    const sku = item.sku ? ` / ${item.sku}` : "";
+    return `${item.name}${sku} / ${fmtCurrency(item.unitIdr)}`;
+  }).join("；");
 }
 
 function getDuplicatePlanCount(plan) {
@@ -216,6 +332,36 @@ function renderCalculatorRows() {
   });
 }
 
+function renderGiftRows() {
+  if (!els.giftRows) return;
+  const options = GIFT_DATA.map((gift, idx) =>
+    `<option value="${idx}">${escapeHtml(giftDisplayName(gift))}（${escapeHtml(gift.sku)}）</option>`
+  ).join("");
+
+  els.giftRows.innerHTML = giftCalcRows.map((line, idx) => `
+    <div class="calc-line gift-line" data-id="${line.id}">
+      <div class="calc-token gift-token">${String(idx + 1).padStart(2, "0")}</div>
+      <div class="calc-field calc-product">
+        <label>赠品中文名</label>
+        <select class="select gift-product-select">
+          <option value="">选择赠品</option>
+          ${options}
+        </select>
+      </div>
+      <div class="calc-field calc-qty">
+        <label>数量</label>
+        <input class="gift-qty-input" type="number" min="1" step="1" value="${escapeHtml(line.qty || 1)}" />
+      </div>
+      <button class="calc-remove gift-remove" type="button" aria-label="删除此赠品行" ${giftCalcRows.length === 1 ? "disabled" : ""}>×</button>
+    </div>
+  `).join("");
+
+  giftCalcRows.forEach(line => {
+    const el = els.giftRows.querySelector(`.calc-line[data-id="${line.id}"] .gift-product-select`);
+    if (el) el.value = line.giftIndex;
+  });
+}
+
 function syncCalculatorStateFromDOM() {
   if (!els.calcRows) return;
   calcRows = Array.from(els.calcRows.querySelectorAll(".calc-line")).map(line => {
@@ -224,6 +370,17 @@ function syncCalculatorStateFromDOM() {
     const qtyInput = line.querySelector(".calc-qty-input");
     const qty = Math.max(1, Math.floor(parseFloat(qtyInput.value) || 1));
     return { id, rowIndex: select.value, qty };
+  });
+}
+
+function syncGiftStateFromDOM() {
+  if (!els.giftRows) return;
+  giftCalcRows = Array.from(els.giftRows.querySelectorAll(".calc-line")).map(line => {
+    const id = parseInt(line.dataset.id, 10);
+    const select = line.querySelector(".gift-product-select");
+    const qtyInput = line.querySelector(".gift-qty-input");
+    const qty = Math.max(1, Math.floor(parseFloat(qtyInput.value) || 1));
+    return { id, giftIndex: select.value, qty };
   });
 }
 
@@ -241,16 +398,51 @@ function getCalculatorItems() {
   });
   return Array.from(grouped.values()).map(item => ({
     ...item,
+    productUnit: productUnitCost(item.row),
+    giftUnit: giftUnitCostIdr(item.row),
+    giftItems: giftItemsForRow(item.row),
     unit: unitLandedCost(item.row),
+    productSubtotal: productUnitCost(item.row) * item.qty,
+    giftSubtotal: giftUnitCostIdr(item.row) * item.qty,
     subtotal: unitLandedCost(item.row) * item.qty
   }));
 }
 
+function getGiftCalculatorItems() {
+  syncGiftStateFromDOM();
+  const grouped = new Map();
+  giftCalcRows.forEach(line => {
+    if (line.giftIndex === "") return;
+    const giftIndex = parseInt(line.giftIndex, 10);
+    const gift = GIFT_DATA[giftIndex];
+    if (!gift) return;
+    const old = grouped.get(giftIndex) || { giftIndex, gift, qty: 0 };
+    old.qty += Math.max(1, Math.floor(line.qty || 1));
+    grouped.set(giftIndex, old);
+  });
+  return Array.from(grouped.values()).map(item => {
+    const unitIdr = cnyToIdr(item.gift.costCny);
+    return {
+      ...item,
+      name: giftDisplayName(item.gift),
+      sku: item.gift.sku,
+      unitIdr,
+      subtotal: unitIdr * item.qty
+    };
+  });
+}
+
 function renderCalculatorResult(items) {
+  const extraGifts = selectedGiftLines;
   const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
-  const total = items.reduce((sum, item) => sum + item.subtotal, 0);
+  const giftQty = extraGifts.reduce((sum, item) => sum + item.qty, 0);
+  const extraGiftTotal = extraGifts.reduce((sum, item) => sum + item.subtotal, 0);
+  const total = items.reduce((sum, item) => sum + item.subtotal, 0) + extraGiftTotal;
+  const productTotal = items.reduce((sum, item) => sum + item.productSubtotal, 0);
+  const planGiftTotal = items.reduce((sum, item) => sum + item.giftSubtotal, 0);
+  const giftTotal = planGiftTotal + extraGiftTotal;
   if (els.grandTotal) els.grandTotal.textContent = fmtCurrency(total);
-  if (els.calcMeta) els.calcMeta.textContent = `${items.length} 个产品 · ${totalQty} 件`;
+  if (els.calcMeta) els.calcMeta.textContent = `${items.length} 个产品 · ${totalQty} 件 / ${extraGifts.length} 种赠品 · ${giftQty} 件`;
   if (!els.calcResult) return;
 
   els.calcResult.hidden = false;
@@ -260,13 +452,31 @@ function renderCalculatorResult(items) {
         <span class="calc-result-label">本次合计</span>
         <strong>${fmtCurrency(total)}</strong>
       </div>
-      <span>${items.length} 个产品 / ${totalQty} 件</span>
+      <span>${items.length} 个产品 / ${totalQty} 件 · ${extraGifts.length} 种赠品 / ${giftQty} 件</span>
+    </div>
+    <div class="calc-total-split">
+      <div><span>产品成本</span><strong>${fmtCurrency(productTotal)}</strong></div>
+      <div><span>赠品成本</span><strong>${fmtCurrency(giftTotal)}</strong></div>
+      <div><span>总到岸成本</span><strong>${fmtCurrency(total)}</strong></div>
     </div>
     <div class="calc-mini-list">
       ${items.map(item => `
         <div class="calc-mini-row">
-          <span>${escapeHtml(item.row[COL.plan])}</span>
-          <span>${fmtCurrency(item.unit)} × ${fmtNumber(item.qty)}</span>
+          <span>
+            <strong>${escapeHtml(item.row[COL.plan])}</strong>
+            <small>${escapeHtml(giftSummary(item.row))}</small>
+          </span>
+          <span>产品 ${fmtCurrency(item.productUnit)} + 赠品 ${fmtCurrency(item.giftUnit)} × ${fmtNumber(item.qty)}</span>
+          <strong>${fmtCurrency(item.subtotal)}</strong>
+        </div>
+      `).join("")}
+      ${extraGifts.map(item => `
+        <div class="calc-mini-row gift-mini-row">
+          <span>
+            <strong>${escapeHtml(item.name)}</strong>
+            <small>${escapeHtml(item.sku)} / 赠品库</small>
+          </span>
+          <span>赠品 ${fmtCurrency(item.unitIdr)} × ${fmtNumber(item.qty)}</span>
           <strong>${fmtCurrency(item.subtotal)}</strong>
         </div>
       `).join("")}
@@ -276,6 +486,7 @@ function renderCalculatorResult(items) {
 
 function hideCalculationDetails() {
   selectedCalcLines = [];
+  selectedGiftLines = [];
   viewRows = [];
   if (els.detailSection) els.detailSection.hidden = true;
   if (els.calcResult) els.calcResult.hidden = true;
@@ -285,11 +496,13 @@ function hideCalculationDetails() {
 
 function calculateLandedCost() {
   const items = getCalculatorItems();
-  if (!items.length) {
-    alert("请先选择至少 1 个产品");
+  const gifts = getGiftCalculatorItems();
+  if (!items.length && !gifts.length) {
+    alert("请先选择至少 1 个产品或赠品");
     return;
   }
   selectedCalcLines = items;
+  selectedGiftLines = gifts;
   if (els.detailSection) els.detailSection.hidden = false;
   renderCalculatorResult(items);
   applyFilters();
@@ -303,6 +516,9 @@ function updateCurrencyButtons() {
 
 function rerenderMoneyViews() {
   if (selectedCalcLines.length) {
+    renderCalculatorResult(selectedCalcLines);
+    renderTable();
+  } else if (selectedGiftLines.length) {
     renderCalculatorResult(selectedCalcLines);
     renderTable();
   } else if (els.grandTotal) {
@@ -410,7 +626,7 @@ function renderTable() {
   els.tableMeta.textContent = `显示 ${viewRows.length.toLocaleString()} / ${total.toLocaleString()} 条`;
 
   if (!viewRows.length) {
-    els.tableBody.innerHTML = `<tr><td colspan="13" style="text-align:center;color:#9aa3b2;padding:32px">无匹配记录</td></tr>`;
+    els.tableBody.innerHTML = `<tr><td colspan="15" style="text-align:center;color:#9aa3b2;padding:32px">无匹配记录</td></tr>`;
     return;
   }
 
@@ -420,6 +636,7 @@ function renderTable() {
     const calcLine = selectedCalcLines.find(item => item.row === r);
     const qty = calcLine ? calcLine.qty : 1;
     const subtotal = calcLine ? calcLine.subtotal : unitLandedCost(r);
+    const giftUnit = calcLine ? calcLine.giftUnit : giftUnitCostIdr(r);
     return `
       <tr>
         <td>
@@ -431,12 +648,14 @@ function renderTable() {
         <td class="order-id" style="font-family:monospace;font-size:12px">${escapeHtml(r[COL.newSku])}</td>
         <td class="order-id" style="font-family:monospace;font-size:11px;color:#5E5E5E">${escapeHtml(r[COL.oldSku] || "—")}</td>
         <td style="font-size:12px">${escapeHtml(r[COL.gift] || "—")}</td>
+        <td style="font-size:11px;color:#5E5E5E;min-width:180px">${escapeHtml(giftSummary(r))}</td>
         <td class="amount-cell">${escapeHtml(fmtNumber(qty))}</td>
         <td>${main ? '<span class="sample-badge" style="background:#FFD93D;color:#0E0E0E">主推</span>' : "—"}</td>
         <td class="amount-cell">${fmtCurrency(r[COL.listPrice])}</td>
         <td class="amount-cell" style="color:#FF7500;font-weight:700">${fmtCurrency(r[COL.dailyPrice])}</td>
         <td class="amount-cell">${fmtCurrency(r[COL.smallPromo])}</td>
         <td class="amount-cell">${fmtCurrency(r[COL.bigPromo])}</td>
+        <td class="amount-cell" style="color:#9A7BE8;font-weight:900">${fmtCurrency(giftUnit)}</td>
         <td class="amount-cell" style="color:#2FB985;font-weight:900">${fmtCurrency(subtotal)}</td>
         <td style="font-size:12px">${escapeHtml(r[COL.batch] || "—")}</td>
         <td style="font-size:11px;color:#5E5E5E">${escapeHtml(r[COL.notes] || "")}</td>
@@ -608,24 +827,27 @@ function renderLookupResult() {
 function exportCSV() {
   if (!viewRows.length) { alert("没有数据可导出"); return; }
   const headers = [
-    "销售方案", "新SKU编码", "旧SKU编码", "赠品", "数量", "是否主推",
-    "划线价", "日常价", "小促价", "大促价", "到岸小计", "上线时间", "上线批次", "备注", "产品经理"
+    "销售方案", "新SKU编码", "旧SKU编码", "赠品", "赠品明细", "数量", "是否主推",
+    "划线价", "日常价", "小促价", "大促价", "赠品成本/件", "到岸小计", "上线时间", "上线批次", "备注", "产品经理"
   ];
   const data = viewRows.map(r => {
     const calcLine = selectedCalcLines.find(item => item.row === r);
     const qty = calcLine ? calcLine.qty : 1;
     const subtotal = calcLine ? calcLine.subtotal : unitLandedCost(r);
+    const giftUnit = calcLine ? calcLine.giftUnit : giftUnitCostIdr(r);
     return [
       r[COL.plan]       || "",
       r[COL.newSku]     || "",
       r[COL.oldSku]     || "",
       r[COL.gift]       || "",
+      giftSummary(r),
       qty,
       isMainPush(r) ? "是" : "否",
       parseFloat(r[COL.listPrice])  || "",
       parseFloat(r[COL.dailyPrice]) || "",
       parseFloat(r[COL.smallPromo]) || "",
       parseFloat(r[COL.bigPromo])   || "",
+      giftUnit || "",
       subtotal || "",
       fmtDate(r[COL.launchDate]),
       r[COL.batch]      || "",
@@ -676,12 +898,20 @@ if (els.addCalcRow) els.addCalcRow.addEventListener("click", () => {
   renderCalculatorRows();
 });
 
+if (els.addGiftRow) els.addGiftRow.addEventListener("click", () => {
+  syncGiftStateFromDOM();
+  giftCalcRows.push({ id: nextGiftRowId++, giftIndex: "", qty: 1 });
+  renderGiftRows();
+});
+
 if (els.calculateBtn) els.calculateBtn.addEventListener("click", calculateLandedCost);
 
 if (els.clearCalcBtn) els.clearCalcBtn.addEventListener("click", () => {
   calcRows = [{ id: nextCalcRowId++, rowIndex: "", qty: 1 }];
+  giftCalcRows = [{ id: nextGiftRowId++, giftIndex: "", qty: 1 }];
   hideCalculationDetails();
   renderCalculatorRows();
+  renderGiftRows();
 });
 
 if (els.calcRows) {
@@ -703,6 +933,29 @@ if (els.calcRows) {
 
   els.calcRows.addEventListener("change", e => {
     if (!e.target.matches(".calc-product-select")) return;
+    hideCalculationDetails();
+  });
+}
+
+if (els.giftRows) {
+  els.giftRows.addEventListener("click", e => {
+    const btn = e.target.closest(".gift-remove");
+    if (!btn || btn.disabled) return;
+    syncGiftStateFromDOM();
+    const line = btn.closest(".calc-line");
+    const id = parseInt(line.dataset.id, 10);
+    giftCalcRows = giftCalcRows.filter(item => item.id !== id);
+    hideCalculationDetails();
+    renderGiftRows();
+  });
+
+  els.giftRows.addEventListener("input", e => {
+    if (!e.target.matches(".gift-qty-input")) return;
+    hideCalculationDetails();
+  });
+
+  els.giftRows.addEventListener("change", e => {
+    if (!e.target.matches(".gift-product-select")) return;
     hideCalculationDetails();
   });
 }
@@ -741,6 +994,7 @@ function renderDataStatus() {
 
 populateBatchFilter();
 renderCalculatorRows();
+renderGiftRows();
 hideCalculationDetails();
 applyFilters();
 renderDataStatus();

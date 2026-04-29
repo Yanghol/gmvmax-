@@ -1290,6 +1290,31 @@ body[data-tool="cost"] .app > .hero::after  { background: var(--purple); }
   display: grid;
   gap: 12px;
 }
+.calc-input-zone {
+  display: grid;
+  gap: 16px;
+}
+.calc-group {
+  display: grid;
+  gap: 10px;
+}
+.calc-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
+}
+.calc-group-head strong {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 900;
+}
+.calc-group-head span {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ink-3);
+}
 .calc-line {
   display: grid;
   grid-template-columns: 48px minmax(240px, 1fr) 150px 42px;
@@ -1314,6 +1339,9 @@ body[data-tool="cost"] .app > .hero::after  { background: var(--purple); }
   font-family: var(--font-display);
   font-size: 16px;
   font-weight: 900;
+}
+.gift-token {
+  background: var(--purple);
 }
 .calc-field .select,
 .calc-field input {
@@ -1356,6 +1384,9 @@ body[data-tool="cost"] .app > .hero::after  { background: var(--purple); }
 }
 .calc-add {
   background: var(--mint-soft) !important;
+}
+.gift-add {
+  background: var(--purple-soft) !important;
 }
 .calc-result {
   margin-top: 18px;
@@ -1402,6 +1433,32 @@ body[data-tool="cost"] .app > .hero::after  { background: var(--purple); }
   gap: 8px;
   margin-top: 12px;
 }
+.calc-total-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.calc-total-split > div {
+  padding: 12px;
+  background: var(--cream);
+  border: 2px solid var(--line);
+  border-radius: 12px;
+}
+.calc-total-split span {
+  display: block;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  color: var(--ink-3);
+  margin-bottom: 4px;
+}
+.calc-total-split strong {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1.1;
+  color: var(--ink);
+}
 .calc-mini-row {
   display: grid;
   grid-template-columns: minmax(180px, 1fr) minmax(150px, auto) minmax(150px, auto);
@@ -1414,10 +1471,29 @@ body[data-tool="cost"] .app > .hero::after  { background: var(--purple); }
   font-size: 13px;
   font-weight: 700;
 }
+.calc-mini-row small {
+  display: block;
+  margin-top: 4px;
+  color: var(--ink-3);
+  font-size: 11px;
+  line-height: 1.45;
+  font-weight: 700;
+}
 .calc-mini-row strong {
   text-align: right;
   color: var(--mint-deep);
   font-weight: 900;
+}
+.gift-mini-row {
+  background: var(--purple-soft);
+}
+.gift-mini-row strong {
+  color: var(--purple-deep);
+}
+.calc-mini-row > span:first-child strong {
+  display: block;
+  text-align: left;
+  color: var(--ink);
 }
 
 @media (max-width: 900px) {

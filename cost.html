@@ -60,9 +60,25 @@
           <strong id="grandTotal">0 IDR</strong>
           <span id="calcMeta">选择产品和数量后开始计算</span>
         </div>
-        <div id="calcRows" class="calc-rows"></div>
+        <div class="calc-input-zone">
+          <div class="calc-group">
+            <div class="calc-group-head">
+              <strong>产品</strong>
+              <span>按销售方案选择</span>
+            </div>
+            <div id="calcRows" class="calc-rows"></div>
+          </div>
+          <div class="calc-group">
+            <div class="calc-group-head">
+              <strong>赠品</strong>
+              <span>从赠品库单独选择</span>
+            </div>
+            <div id="giftRows" class="calc-rows"></div>
+          </div>
+        </div>
         <div class="calc-actions">
           <button class="ghost calc-add" id="addCalcRow" type="button">+ 添加产品</button>
+          <button class="ghost calc-add gift-add" id="addGiftRow" type="button">+ 添加赠品</button>
           <button class="ghost calc-primary" id="calculateBtn" type="button">计算到岸成本</button>
           <button class="ghost" id="clearCalcBtn" type="button">清空</button>
         </div>
@@ -133,12 +149,14 @@
               <th data-i18n="cost.col.newSku">新 SKU 编码</th>
               <th data-i18n="cost.col.oldSku">旧 SKU 编码</th>
               <th data-i18n="cost.col.gift">赠品</th>
+              <th>赠品明细</th>
               <th>数量</th>
               <th data-i18n="cost.col.mainpush">主推</th>
               <th data-i18n="cost.col.list">划线价</th>
               <th data-i18n="cost.col.daily">日常价</th>
               <th data-i18n="cost.col.small">小促价</th>
               <th data-i18n="cost.col.big">大促价</th>
+              <th>赠品成本/件</th>
               <th>到岸小计</th>
               <th data-i18n="cost.col.batch">批次</th>
               <th data-i18n="cost.col.notes">备注</th>
@@ -151,7 +169,7 @@
 
     <section class="section help">
       <h2 data-i18n="cost.help.title">价格库说明</h2>
-      <p data-i18n="cost.help.body">选择产品中文名并输入数量后，系统按日常价（不低于）快速合计到岸成本；价格明细会在计算后显示，并保留 SKU、赠品与四档价格用于复核。</p>
+      <p data-i18n="cost.help.body">选择产品中文名并输入数量后，系统按日常价（不低于）加上赠品库「到仓成本」合计到岸成本；赠品成本按固定汇率 1 CNY = 2500 IDR 换算。价格明细会在计算后显示，并保留 SKU、赠品与四档价格用于复核。</p>
     </section>
   </main>
 
