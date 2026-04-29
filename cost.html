@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="author" content="Yann" />
+  <title data-i18n="cost.title">CusCus · 产品成本计算器</title>
+  <link rel="icon" type="image/png" href="assets/logo-vertical.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles-brand.css" />
+</head>
+<body data-tool="cost">
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <main class="app">
+    <nav class="top-nav">
+      <a class="brand" href="index.html" data-i18n="common.brand" aria-label="CusCus 工作台"></a>
+      <div class="nav-links">
+        <a href="index.html" data-i18n="common.nav.home">导航页</a>
+        <a href="gmv.html" data-i18n="common.nav.gmv">GMV MAX</a>
+        <a href="video.html" data-i18n="common.nav.video">视频看板</a>
+        <a href="script.html" data-i18n="common.nav.script">脚本生成</a>
+        <a href="order.html" data-i18n="common.nav.order">订单分析</a>
+        <a href="cost.html" class="active" aria-current="page" data-i18n="common.nav.cost">成本计算器</a>
+      </div>
+      <div class="nav-controls">
+        <div class="lang-switch">
+          <button class="ghost" data-lang="zh" data-i18n="common.lang.zh">中文</button>
+          <button class="ghost" data-lang="en" data-i18n="common.lang.en">English</button>
+        </div>
+        <div class="currency-switch">
+          <span class="currency-label" data-i18n="fx.currency">货币</span>
+          <button class="ghost" data-currency="IDR">IDR</button>
+          <button class="ghost" data-currency="CNY">CNY</button>
+        </div>
+      </div>
+    </nav>
+
+    <header class="hero" style="grid-template-columns:1fr">
+      <div>
+        <p class="eyebrow" data-i18n="cost.eyebrow">产品价格库 · 成本计算</p>
+        <h1 data-i18n="cost.h1">CusCus 产品成本计算器</h1>
+        <p class="sub" data-i18n="cost.sub">查看所有产品 / 套装 / 赠品的 SKU 与四档价格，支持组合 SKU 查询与 CSV 导出。</p>
+      </div>
+    </header>
+
+    <!-- 到岸成本计算器 -->
+    <section class="section cost-game" id="calculatorSection">
+      <div class="section-header">
+        <h2 data-i18n="cost.section.calc">到岸成本计算器</h2>
+        <div id="dataStatus" class="pill">30 条产品可选</div>
+      </div>
+      <div class="calc-arena">
+        <div class="score-board">
+          <span class="score-label">TOTAL LANDED COST</span>
+          <strong id="grandTotal">0 IDR</strong>
+          <span id="calcMeta">选择产品和数量后开始计算</span>
+        </div>
+        <div id="calcRows" class="calc-rows"></div>
+        <div class="calc-actions">
+          <button class="ghost calc-add" id="addCalcRow" type="button">+ 添加产品</button>
+          <button class="ghost calc-primary" id="calculateBtn" type="button">计算到岸成本</button>
+          <button class="ghost" id="clearCalcBtn" type="button">清空</button>
+        </div>
+      </div>
+      <div id="calcResult" class="calc-result" hidden></div>
+    </section>
+
+    <!-- 主表 -->
+    <section class="section" id="detailSection" hidden>
+      <div class="section-header">
+        <h2 data-i18n="cost.section.table">价格明细</h2>
+        <div class="section-actions">
+          <button class="ghost" id="exportBtn" data-i18n="cost.export">导出 CSV</button>
+        </div>
+      </div>
+      <div class="filter-panel">
+        <div class="filter-row">
+          <div class="filter-item" style="flex:1;min-width:240px">
+            <label data-i18n="cost.filter.search">搜索</label>
+            <input id="searchInput" class="search" data-i18n-placeholder="cost.filter.search_placeholder" placeholder="销售方案 / SKU / 赠品" />
+          </div>
+          <div class="filter-item">
+            <label data-i18n="cost.filter.batch">上线批次</label>
+            <select id="batchFilter" class="select">
+              <option value="" data-i18n="order.filter.all">全部</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label data-i18n="cost.filter.type">产品类型</label>
+            <select id="typeFilter" class="select">
+              <option value="" data-i18n="order.filter.all">全部</option>
+              <option value="single" data-i18n="cost.filter.single">单品</option>
+              <option value="bundle" data-i18n="cost.filter.bundle">套装</option>
+              <option value="sample" data-i18n="cost.filter.sample">小样</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label data-i18n="cost.filter.mainpush">主推</label>
+            <select id="mainPushFilter" class="select">
+              <option value="" data-i18n="order.filter.all">全部</option>
+              <option value="yes" data-i18n="cost.filter.mainpush_yes">主推</option>
+              <option value="no" data-i18n="cost.filter.mainpush_no">非主推</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label data-i18n="cost.filter.sort">排序</label>
+            <select id="sortSelect" class="select">
+              <option value="default" data-i18n="cost.sort.default">默认顺序</option>
+              <option value="daily_desc" data-i18n="cost.sort.daily_desc">日常价 高→低</option>
+              <option value="daily_asc" data-i18n="cost.sort.daily_asc">日常价 低→高</option>
+              <option value="big_desc" data-i18n="cost.sort.big_desc">大促价 高→低</option>
+              <option value="list_desc" data-i18n="cost.sort.list_desc">划线价 高→低</option>
+            </select>
+          </div>
+          <div class="filter-item" style="align-self:flex-end">
+            <button class="ghost" id="resetFilters" data-i18n="order.filter.reset">重置筛选</button>
+          </div>
+        </div>
+      </div>
+      <div class="filter-meta">
+        <span id="tableMeta" data-i18n="cost.table.empty">显示 0 / 0 条</span>
+      </div>
+      <div class="table-container">
+        <table class="order-table" id="costTable">
+          <thead>
+            <tr>
+              <th data-i18n="cost.col.plan">销售方案</th>
+              <th data-i18n="cost.col.newSku">新 SKU 编码</th>
+              <th data-i18n="cost.col.oldSku">旧 SKU 编码</th>
+              <th data-i18n="cost.col.gift">赠品</th>
+              <th>数量</th>
+              <th data-i18n="cost.col.mainpush">主推</th>
+              <th data-i18n="cost.col.list">划线价</th>
+              <th data-i18n="cost.col.daily">日常价</th>
+              <th data-i18n="cost.col.small">小促价</th>
+              <th data-i18n="cost.col.big">大促价</th>
+              <th>到岸小计</th>
+              <th data-i18n="cost.col.batch">批次</th>
+              <th data-i18n="cost.col.notes">备注</th>
+            </tr>
+          </thead>
+          <tbody id="costTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section help">
+      <h2 data-i18n="cost.help.title">价格库说明</h2>
+      <p data-i18n="cost.help.body">选择产品中文名并输入数量后，系统按日常价（不低于）快速合计到岸成本；价格明细会在计算后显示，并保留 SKU、赠品与四档价格用于复核。</p>
+    </section>
+  </main>
+
+  <button id="backToTop" class="back-to-top" aria-label="回到顶部">↑</button>
+  <footer class="footer" data-i18n="cost.footer">CusCus 产品成本计算器</footer>
+
+  <script src="i18n.js"></script>
+  <script src="cost.js"></script>
+  <script>
+    (function () {
+      var title = '%c✦ Shining Kids By CusCus ✦';
+      var line  = '%c  design & build · 杨浩 · 2026  ';
+      var hint  = '%cchildren’s skin care · internal workstation';
+      var s1 = ['background:#FF7500','color:#0E0E0E','font:900 22px/1.6 Nunito,PingFang SC,sans-serif','padding:10px 18px','border-radius:999px','border:3px solid #0E0E0E'].join(';');
+      var s2 = ['background:#0E0E0E','color:#FFD93D','font:800 13px/1.8 Nunito,PingFang SC,monospace','padding:6px 14px','border-radius:999px','letter-spacing:0.12em','margin-top:6px'].join(';');
+      var s3 = ['color:#9A7BE8','font:600 11px/1.6 PingFang SC,sans-serif','letter-spacing:0.1em','margin-top:4px'].join(';');
+      console.log(title + '\n' + line + '\n' + hint, s1, s2, s3);
+    })();
+  </script>
+</body>
+</html>

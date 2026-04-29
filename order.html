@@ -26,6 +26,7 @@
         <a href="video.html" data-i18n="common.nav.video">视频看板</a>
         <a href="script.html" data-i18n="common.nav.script">脚本生成</a>
         <a href="order.html" class="active" aria-current="page" data-i18n="common.nav.order">订单分析</a>
+        <a href="cost.html" data-i18n="common.nav.cost">成本计算器</a>
       </div>
       <div class="nav-controls">
         <div class="lang-switch">
@@ -68,6 +69,14 @@
           <span>👥</span><span data-i18n="order.mode.affiliate">达人订单</span>
           <span class="badge" id="affBadge" hidden>0</span>
         </button>
+        <button class="mode-tab" data-mode="join" role="tab" aria-selected="false" id="joinTab" disabled>
+          <span>🔗</span><span data-i18n="order.mode.join">关联分析</span>
+          <span class="badge" id="joinBadge" hidden>0</span>
+        </button>
+        <button class="mode-tab" data-mode="finance" role="tab" aria-selected="false" id="financeTab" disabled>
+          <span>💰</span><span data-i18n="order.mode.finance">财务模式</span>
+          <span class="badge" id="financeBadge" hidden>0</span>
+        </button>
       </div>
       <div class="mode-info">
         <span data-mode-info="shop">
@@ -77,6 +86,14 @@
         <span data-mode-info="affiliate" hidden>
           <span class="ki" data-i18n="order.mode.affiliate.title">达人后台</span>
           <span data-i18n="order.mode.affiliate.desc">— 达人、内容、佣金 · 30 字段</span>
+        </span>
+        <span data-mode-info="join" hidden>
+          <span class="ki" data-i18n="order.mode.join.title">两表关联</span>
+          <span data-i18n="order.mode.join.desc">— 店铺 × 达人 · 匹配率 / 省份 / 真实完成率</span>
+        </span>
+        <span data-mode-info="finance" hidden>
+          <span class="ki" data-i18n="order.mode.finance.title">财务核算</span>
+          <span data-i18n="order.mode.finance.desc">— 出库 GMV / 退货分类 · 折后 + 平台补贴口径</span>
         </span>
       </div>
     </div>
@@ -427,6 +444,189 @@
       <section class="section help">
         <h2 data-i18n="aff.help.title">如何使用达人订单分析？</h2>
         <p data-i18n="aff.help.body">从达人后台（联盟）导出订单 CSV，系统会自动识别为达人模式，并按达人/内容/佣金维度做聚合分析。可以查看哪个达人贡献最大、哪条视频转化最好、佣金成本如何分布。</p>
+      </section>
+
+    </div>
+
+    <!-- ============== JOIN MODE ============== -->
+    <div data-mode-content="join" hidden>
+
+      <section class="section" id="joinAggregateSection" style="display:none">
+        <div class="section-header">
+          <h2 data-i18n="join.section.aggregate">关联分析</h2>
+          <div class="pill" data-i18n="join.aggregate.pill">店铺 × 达人 · Order ID 关联</div>
+        </div>
+
+        <!-- 匹配概况 -->
+        <div class="ct-breakdown" id="joinMatchBreakdown"></div>
+
+        <div class="aggregate-grid" style="margin-top:16px">
+          <div class="agg-card agg-wide">
+            <div class="agg-title" data-i18n="join.agg.creatorCompletion">达人 · 真实完成率</div>
+            <div class="rank-table-wrap">
+              <table class="data-table" id="joinCreatorTable">
+                <thead>
+                  <tr>
+                    <th data-i18n="aff.col.rank">#</th>
+                    <th data-i18n="aff.col.creator">达人</th>
+                    <th>达人订单</th>
+                    <th>匹配</th>
+                    <th>已完成</th>
+                    <th>完成率</th>
+                    <th data-i18n="aff.col.gmv">实际 GMV</th>
+                  </tr>
+                </thead>
+                <tbody id="joinCreatorBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="agg-card">
+            <div class="agg-title" data-i18n="join.agg.province">达人订单 · 省份分布</div>
+            <div class="chart-box chart-tall"><canvas id="joinProvinceChart"></canvas></div>
+          </div>
+        </div>
+
+        <div class="agg-card agg-full" style="margin-top:16px">
+          <div class="agg-title" data-i18n="join.agg.contentProvince">热门内容 · 省份流向</div>
+          <div class="rank-table-wrap">
+            <table class="data-table" id="joinContentProvinceTable">
+              <thead>
+                <tr>
+                  <th data-i18n="aff.col.rank">#</th>
+                  <th data-i18n="aff.col.contentId">Content ID</th>
+                  <th data-i18n="aff.col.contentType">类型</th>
+                  <th data-i18n="aff.col.creator">达人</th>
+                  <th data-i18n="aff.col.orders">订单</th>
+                  <th data-i18n="aff.col.gmv">GMV</th>
+                  <th>完成率</th>
+                  <th>主要省份</th>
+                </tr>
+              </thead>
+              <tbody id="joinContentProvinceBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <h2 data-i18n="join.section.detail">关联明细</h2>
+          <div class="section-actions">
+            <select id="joinSortSelect" class="select">
+              <option value="date_desc" data-i18n="order.sort.date_desc">下单时间 从新到旧</option>
+              <option value="date_asc" data-i18n="order.sort.date_asc">下单时间 从旧到新</option>
+              <option value="amount_desc" data-i18n="order.sort.amount_desc">订单金额 从高到低</option>
+              <option value="commission_desc" data-i18n="aff.sort.commission_desc">佣金 从高到低</option>
+            </select>
+          </div>
+        </div>
+        <div class="filter-meta">
+          <span id="joinFilterMeta">显示 0 条</span>
+          <button class="ghost" id="joinExportBtn" data-i18n="order.filter.export">导出关联结果</button>
+        </div>
+        <div class="table-container">
+          <table class="order-table" id="joinTable">
+            <thead>
+              <tr>
+                <th data-i18n="order.table.orderId">订单号</th>
+                <th data-i18n="order.table.date">下单时间</th>
+                <th data-i18n="aff.col.creator">达人</th>
+                <th data-i18n="aff.col.contentType">内容类型</th>
+                <th data-i18n="order.table.product">产品</th>
+                <th data-i18n="aff.col.payment">Payment</th>
+                <th data-i18n="order.table.status">状态</th>
+                <th data-i18n="order.table.province">省份</th>
+                <th data-i18n="aff.col.commission_actual">实际佣金</th>
+              </tr>
+            </thead>
+            <tbody id="joinTableBody"></tbody>
+          </table>
+        </div>
+        <div id="joinPagination" class="pagination"></div>
+      </section>
+
+      <section class="section help">
+        <h2 data-i18n="join.help.title">关联分析是什么？</h2>
+        <p data-i18n="join.help.body">同时上传店铺订单和达人订单后，系统按 Order ID 匹配两张表，让你看到：达人单的真实店铺完成状态、买家省份分布、哪条视频带货哪个地区。</p>
+      </section>
+
+    </div>
+
+    <!-- ============== FINANCE MODE ============== -->
+    <div data-mode-content="finance" hidden>
+
+      <section class="section">
+        <div class="section-header">
+          <h2 data-i18n="finance.section.refund">退货分类</h2>
+          <div class="pill" data-i18n="finance.refund.pill">仅统计已发货订单</div>
+        </div>
+        <div class="ct-breakdown" id="financeRefundBreakdown"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <h2 data-i18n="finance.section.skuaov">SKU 客单价</h2>
+          <div class="pill" data-i18n="finance.skuaov.pill">按计入财务 GMV 的订单</div>
+        </div>
+        <div class="rank-table-wrap">
+          <table class="data-table" id="financeSKUAOVTable">
+            <thead>
+              <tr>
+                <th data-i18n="aff.col.rank">#</th>
+                <th data-i18n="finance.col.sku">SKU</th>
+                <th data-i18n="order.agg.product_name">产品名</th>
+                <th data-i18n="finance.col.orders">订单数</th>
+                <th data-i18n="finance.col.qty">总件数</th>
+                <th data-i18n="finance.col.revenue">收入</th>
+                <th data-i18n="order.agg.aov">客单价</th>
+              </tr>
+            </thead>
+            <tbody id="financeSKUAOVBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-header">
+          <h2 data-i18n="finance.section.detail">退货明细</h2>
+          <div class="section-actions">
+            <select id="financeRefundFilter" class="select">
+              <option value="" data-i18n="finance.filter.all_refunds">全部退货</option>
+              <option value="return" data-i18n="finance.cat.return">退货退款</option>
+              <option value="rejected" data-i18n="finance.cat.rejected">送达失败：拒收</option>
+              <option value="other" data-i18n="finance.cat.other">其他</option>
+            </select>
+            <button class="ghost" id="financeExportBtn" data-i18n="finance.export">导出退货清单</button>
+          </div>
+        </div>
+        <div class="filter-meta">
+          <span id="financeFilterMeta">显示 0 条退货订单</span>
+        </div>
+        <div class="table-container">
+          <table class="order-table" id="financeTable">
+            <thead>
+              <tr>
+                <th data-i18n="order.table.orderId">订单号</th>
+                <th data-i18n="order.table.date">下单时间</th>
+                <th data-i18n="finance.col.shipped">发货时间</th>
+                <th data-i18n="order.table.product">产品</th>
+                <th data-i18n="finance.col.refund_amount">退款金额</th>
+                <th data-i18n="order.table.status">状态</th>
+                <th data-i18n="finance.col.category">退款分类</th>
+                <th data-i18n="finance.col.reason">原因</th>
+              </tr>
+            </thead>
+            <tbody id="financeTableBody"></tbody>
+          </table>
+        </div>
+        <div id="financePagination" class="pagination"></div>
+      </section>
+
+      <section class="section help">
+        <h2 data-i18n="finance.help.title">财务模式是什么？</h2>
+        <p data-i18n="finance.help.body">财务团队口径：① 财务 GMV = SKU Subtotal After Discount + SKU Platform Discount，排除 Shipped Time 为空且状态为 To ship/Canceled/Unpaid 的订单。② 退款金额 = Order Refund Amount + SKU Platform Discount。③ 退款分三类：「退货退款」(Cancelation/Return Type=Return/Refund)、「送达失败：拒收」(计入GMV+Cancel Reason=Package delivery failed)、「其他退款」(计入GMV+Cancel Reason 非空且≠Package delivery failed)。④ 营业收入 = 财务 GMV − 三类退款金额。⑤ 客单价同时提供「按 GMV」与「按营业收入」两口径。</p>
       </section>
 
     </div>
