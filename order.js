@@ -118,6 +118,10 @@ function parseDate(str) {
   return new Date(+year, +month - 1, +day, +h, +mi, +s);
 }
 
+function parseNumber(value) {
+  return parseFloat(String(value ?? "").replace(/,/g, "")) || 0;
+}
+
 function formatDate(date) {
   if (!date) return "";
   const d = new Date(date);
@@ -181,20 +185,48 @@ function contentTypeSlug(type) {
   return "Other";
 }
 
+function normalizeSkuKey(sku) {
+  return String(sku ?? "")
+    .replace(/\s+/g, "")
+    .split("+")
+    .map(x => x.trim())
+    .filter(Boolean)
+    .sort()
+    .join("+");
+}
+
 function getProductName(sku) {
   const map = window.SKU_MAPPING || {};
   if (!sku) return "";
-  const cleaned = String(sku).trim();
+  const cleaned = String(sku).replace(/\s+/g, "").trim();
   if (map[cleaned]) return map[cleaned];
 
   // order-agnostic 匹配
-  const norm = s => String(s).split("+").map(x => x.trim()).filter(Boolean).sort().join("+");
-  const target = norm(cleaned);
+  const target = normalizeSkuKey(cleaned);
   for (const [k, v] of Object.entries(map)) {
-    if (norm(k) === target) return v;
+    if (normalizeSkuKey(k) === target) return v;
+  }
+
+  // jia 里的旧 SKU 常带贴纸/铅笔/赠品编码，先剔除这些辅助项再匹配主产品组合
+  const stripped = cleaned
+    .split("+")
+    .map(x => x.trim())
+    .filter(Boolean)
+    .filter(part => !/^(0020|0037|755168|8000000020)\*/.test(part))
+    .join("+");
+  if (stripped && stripped !== cleaned) {
+    const strippedTarget = normalizeSkuKey(stripped);
+    if (map[stripped]) return map[stripped];
+    for (const [k, v] of Object.entries(map)) {
+      if (normalizeSkuKey(k) === strippedTarget) return v;
+    }
   }
 
   // fallback
+  if (/^\d+$/.test(cleaned) && cleaned.length >= 4) {
+    const shortCode = cleaned.slice(-4);
+    if (map[`${shortCode}*1`]) return map[`${shortCode}*1`];
+  }
   if (cleaned.match(/^00016/)) return getProductName(cleaned.replace(/^00016/, "0016"));
   if (cleaned === "8990144000016*2") return "防晒乳*2";
   return cleaned;
@@ -360,13 +392,18 @@ const els = {
     filterMeta: document.getElementById("filterMeta"),
     sortSelect: document.getElementById("sortSelect"),
     orderTableBody: document.getElementById("orderTableBody"),
-    pagination: document.getElementById("pagination")
+    pagination: document.getElementById("pagination"),
+    blacklistBody: document.getElementById("blacklistBody"),
+    blacklistMeta: document.getElementById("blacklistMeta"),
+    blacklistThreshold: document.getElementById("blacklistThreshold"),
+    blacklistExportBtn: document.getElementById("blacklistExportBtn")
   },
 
   // affiliate
   a: {
     aggregateSection: document.getElementById("affAggregateSection"),
     creatorRankBody: document.getElementById("creatorRankBody"),
+    skuSalesBody: document.getElementById("affSkuSalesBody"),
     topContentBody: document.getElementById("topContentBody"),
     contentTypeBreakdown: document.getElementById("contentTypeBreakdown"),
     searchInput: document.getElementById("affSearchInput"),
@@ -709,6 +746,7 @@ const shop = {
     const samples = state.shop.orders.filter(o => o._isSample);
 
     shop.renderProductRanking(paid);
+    shop.renderBlacklist();
     requestAnimationFrame(() => requestAnimationFrame(() => {
       shop.renderProvinceChart(paid);
       shop.renderStatusChart(paid);
@@ -871,6 +909,157 @@ const shop = {
     renderPieChart("sampleChart", Object.entries(map).sort((a, b) => b[1] - a[1]), { emptyText: "暂无寄样订单" });
   },
 
+  // ── 恶意买家识别 ──────────────────────────────────────────
+  // 判定"问题订单"：取消 / 未支付 / 退款退货
+  _isBadOrder(o) {
+    const st = (o["Order Status"] || "").trim();
+    const ct = (o["Cancelation/Return Type"] || o["Cancellation/Return Type"] || "").trim();
+    if (st === "Canceled" || st.includes("Unpaid")) return true;
+    if (ct === "Return/Refund") return true;
+    return false;
+  },
+
+  // 问题类型标签
+  _badLabel(o) {
+    const st = (o["Order Status"] || "").trim();
+    const ct = (o["Cancelation/Return Type"] || o["Cancellation/Return Type"] || "").trim();
+    if (ct === "Return/Refund") return "退款";
+    if (st.includes("Unpaid")) return "未支付";
+    if (st === "Canceled") return "取消";
+    return "问题";
+  },
+
+  _buildBuyerMap() {
+    const buyerMap = {};
+    state.shop.orders.forEach(o => {
+      const buyer = (o["Buyer Username"] || "").trim();
+      if (!buyer) return;
+      if (!buyerMap[buyer]) buyerMap[buyer] = { orders: [], badOrders: [], badCount: 0, reasons: {} };
+      buyerMap[buyer].orders.push(o);
+      if (shop._isBadOrder(o)) {
+        buyerMap[buyer].badCount++;
+        buyerMap[buyer].badOrders.push(o);
+        const label = shop._badLabel(o);
+        const reason = label === "取消" ? translateCancelReason(o["Cancel Reason"]) : label;
+        buyerMap[buyer].reasons[reason] = (buyerMap[buyer].reasons[reason] || 0) + 1;
+      }
+    });
+    return buyerMap;
+  },
+
+  renderBlacklist() {
+    if (!els.s.blacklistBody) return;
+    const threshold = parseInt(els.s.blacklistThreshold?.value || "3", 10);
+    const buyerMap = shop._buildBuyerMap();
+
+    const flagged = Object.entries(buyerMap)
+      .filter(([, d]) => d.badCount >= threshold)
+      .sort((a, b) => b[1].badCount - a[1].badCount);
+
+    if (!flagged.length) {
+      els.s.blacklistBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#9aa3b2;padding:24px">未发现符合条件的可疑买家 ✓</td></tr>`;
+      els.s.blacklistMeta.textContent = "";
+      return;
+    }
+
+    els.s.blacklistBody.innerHTML = flagged.map(([buyer, d], i) => {
+      const total = d.orders.length;
+      const good = total - d.badCount;
+      const rate = total ? (d.badCount / total * 100) : 0;
+      const rateCls = rate >= 80 ? "danger" : rate >= 50 ? "warning" : "ok";
+      const reasons = Object.entries(d.reasons).sort((a, b) => b[1] - a[1]).map(([r, c]) => `${r}(${c})`).join("、");
+      return `<tr class="${rate >= 80 ? "row-alert" : ""}" data-blacklist-buyer="${escapeHtml(buyer)}" style="cursor:pointer" title="点击查看问题订单">
+        <td class="rank-num">${i + 1}</td>
+        <td><span class="creator-name" style="color:#F27A5C">${escapeHtml(buyer)}</span></td>
+        <td>${total}</td>
+        <td><strong style="color:#F27A5C">${d.badCount}</strong></td>
+        <td>${good}</td>
+        <td><span class="cancel-rate rate-${rateCls}">${rate.toFixed(0)}%</span></td>
+        <td style="font-size:11px;max-width:220px;word-break:break-all">${escapeHtml(reasons)}</td>
+      </tr>`;
+    }).join("");
+
+    els.s.blacklistMeta.textContent = `共发现 ${flagged.length} 个可疑买家（取消/退款/未支付 ≥ ${threshold} 次）`;
+  },
+
+  // 点击黑名单行 → 侧边栏展示该买家的问题订单
+  showBlacklistDrawer(buyer) {
+    const buyerMap = shop._buildBuyerMap();
+    const data = buyerMap[buyer];
+    if (!data) return;
+
+    const badOrders = data.badOrders;
+    const html = `
+      <div class="detail-group-title" style="color:#F27A5C">⚠ ${escapeHtml(buyer)} · ${badOrders.length} 笔问题订单</div>
+      <div class="detail-row">
+        <div class="detail-label">总下单</div>
+        <div class="detail-value">${data.orders.length} 笔</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">问题订单</div>
+        <div class="detail-value" style="color:#F27A5C;font-weight:700">${data.badCount} 笔（${(data.orders.length ? data.badCount / data.orders.length * 100 : 0).toFixed(0)}%）</div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-label">问题类型</div>
+        <div class="detail-value">${Object.entries(data.reasons).sort((a, b) => b[1] - a[1]).map(([r, c]) => `${r}(${c})`).join("、")}</div>
+      </div>
+      <div class="detail-group-title" style="margin-top:16px">问题订单明细</div>
+      ${badOrders.map(o => {
+        const oid = (o["Order ID"] || "").trim();
+        const product = o._product || o["Seller SKU"] || "—";
+        const amount = formatCurrency(parseFloat(o["Order Amount"]) || 0);
+        const date = o["Created Time"] || "—";
+        const status = o["Order Status"] || "—";
+        const label = shop._badLabel(o);
+        const reason = o["Cancel Reason"] ? translateCancelReason(o["Cancel Reason"]) : "";
+        const labelColor = label === "退款" ? "#9A7BE8" : label === "未支付" ? "#FFB347" : "#F27A5C";
+        return `<div style="border-top:1px dashed rgba(0,0,0,0.08);padding:10px 0">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span class="order-id" style="font-family:monospace;font-size:12px">${escapeHtml(oid)}</span>
+            <span class="status-badge" style="background:${labelColor};color:#fff;font-size:11px">${escapeHtml(label)}</span>
+          </div>
+          <div style="font-size:12px;margin-top:4px;color:#5E5E5E">
+            ${escapeHtml(product)} · ${amount}
+          </div>
+          <div style="font-size:11px;color:#9aa3b2;margin-top:2px">
+            ${escapeHtml(date)}${reason ? ` · ${escapeHtml(reason)}` : ""}
+          </div>
+        </div>`;
+      }).join("")}
+    `;
+
+    els.drawerBody.innerHTML = html;
+    els.drawer.classList.add("open");
+  },
+
+  exportBlacklist() {
+    if (!els.s.blacklistBody) return;
+    const threshold = parseInt(els.s.blacklistThreshold?.value || "3", 10);
+    const buyerMap = shop._buildBuyerMap();
+    const flagged = Object.entries(buyerMap)
+      .filter(([, d]) => d.badCount >= threshold)
+      .sort((a, b) => b[1].badCount - a[1].badCount);
+
+    if (!flagged.length) { alert("无可疑买家可导出"); return; }
+
+    const headers = ["买家用户名", "总下单数", "问题订单数", "正常订单数", "问题率", "问题类型"];
+    const rows = flagged.map(([buyer, d]) => {
+      const good = d.orders.length - d.badCount;
+      const rate = d.orders.length ? (d.badCount / d.orders.length * 100).toFixed(1) + "%" : "0%";
+      const reasons = Object.entries(d.reasons).sort((a, b) => b[1] - a[1]).map(([r, c]) => `${r}(${c})`).join(" / ");
+      return [buyer, d.orders.length, d.badCount, good, rate, reasons];
+    });
+
+    const csv = [headers, ...rows]
+      .map(row => row.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\r\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `cuscus-可疑买家_${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+  },
+
   applyFilters() {
     const f = els.s;
     const search = f.searchInput.value.toLowerCase().trim();
@@ -1016,6 +1205,15 @@ els.s.resetFilters.addEventListener("click", () => {
   els.s.dateFrom.value = ""; els.s.dateTo.value = ""; shop.applyFilters();
 });
 els.s.exportBtn.addEventListener("click", () => shop.exportCSV());
+if (els.s.blacklistThreshold) els.s.blacklistThreshold.addEventListener("change", () => shop.renderBlacklist());
+if (els.s.blacklistExportBtn) els.s.blacklistExportBtn.addEventListener("click", () => shop.exportBlacklist());
+if (els.s.blacklistBody) {
+  els.s.blacklistBody.addEventListener("click", e => {
+    const row = e.target.closest("tr[data-blacklist-buyer]");
+    if (!row) return;
+    shop.showBlacklistDrawer(row.dataset.blacklistBuyer);
+  });
+}
 
 // ════════════════════════════════════════════════════════════
 // AFFILIATE 模式
@@ -1035,6 +1233,7 @@ const affiliate = {
       ...r,
       _product: getProductName(r["SKU ID"]) || r["Product Name"] || "",
       _date: parseDate(r["Time Created"]),
+      _qty: parseNumber(r["Quantity"]),
       _payment: parseFloat(r["Payment Amount"]) || 0,
       _commissionRate: parseFloat(String(r["Standard commission rate"]).replace(/%/g, "")) || 0,
       _commissionActual: affiliate.totalCommission(r),
@@ -1089,6 +1288,7 @@ const affiliate = {
   renderAggregates() {
     if (els.a.aggregateSection) els.a.aggregateSection.style.display = "";
     affiliate.renderCreatorRanking();
+    affiliate.renderSKUSales();
     affiliate.renderTopContent();
     affiliate.renderContentTypeBreakdown();
     requestAnimationFrame(() => requestAnimationFrame(() => {
@@ -1096,6 +1296,55 @@ const affiliate = {
       affiliate.renderCommissionMixChart();
       affiliate.renderTrendChart();
     }));
+  },
+
+  renderSKUSales() {
+    if (!els.a.skuSalesBody) return;
+
+    const map = {};
+    let totalQty = 0;
+
+    state.affiliate.orders.forEach(o => {
+      const sku = String(o["SKU ID"] || "").trim() || "(未知)";
+      const qty = o._qty || 0;
+      if (!map[sku]) map[sku] = { sku, product: o._product || "", qty: 0, orders: 0, gmv: 0 };
+      map[sku].qty += qty;
+      map[sku].orders++;
+      map[sku].gmv += o._payment;
+      totalQty += qty;
+      if (!map[sku].product && o._product) map[sku].product = o._product;
+    });
+
+    const ranked = Object.values(map)
+      .sort((a, b) => b.qty - a.qty || b.orders - a.orders || b.gmv - a.gmv)
+      .slice(0, 50);
+
+    if (!ranked.length) {
+      els.a.skuSalesBody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#9aa3b2;padding:20px">暂无 SKU 销量数据</td></tr>`;
+      return;
+    }
+
+    els.a.skuSalesBody.innerHTML = ranked.map((d, i) => {
+      const share = totalQty ? d.qty / totalQty * 100 : 0;
+      const productName = getProductName(d.sku) || d.product || "—";
+      return `<tr>
+        <td class="rank-num">${i + 1}</td>
+        <td class="product-name">
+          <div class="sku-product-main">${escapeHtml(productName)}</div>
+          <div class="sku-product-sub">${escapeHtml(d.sku)}</div>
+        </td>
+        <td class="sku-cell">${escapeHtml(d.sku)}</td>
+        <td><strong>${d.qty.toLocaleString()}</strong></td>
+        <td>
+          <div class="sku-share">
+            <span>${share.toFixed(1)}%</span>
+            <i style="width:${Math.min(100, share).toFixed(2)}%"></i>
+          </div>
+        </td>
+        <td>${d.orders.toLocaleString()}</td>
+        <td>${formatCurrency(d.gmv)}</td>
+      </tr>`;
+    }).join("");
   },
 
   // 各内容类型的详细分解（订单/去重/GMV/佣金）

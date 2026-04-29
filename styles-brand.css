@@ -2287,6 +2287,32 @@ body[data-tool="cost"] .app > .hero::after  { background: var(--purple); }
   letter-spacing: 0;
 }
 
+.sku-share {
+  position: relative;
+  display: inline-flex;
+  min-width: 92px;
+  height: 24px;
+  align-items: center;
+  padding: 0 9px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  overflow: hidden;
+  font-size: 11.5px;
+  font-weight: 900;
+  color: var(--ink);
+}
+.sku-share span {
+  position: relative;
+  z-index: 1;
+}
+.sku-share i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--mint);
+  border-right: 2px solid var(--line);
+}
+
 .product-name {
   font-weight: 600;
   color: var(--ink);
@@ -2294,6 +2320,20 @@ body[data-tool="cost"] .app > .hero::after  { background: var(--purple); }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sku-product-main {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.sku-product-sub {
+  margin-top: 3px;
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ink-3);
+  white-space: normal;
+  word-break: break-all;
 }
 
 .detail-group-title {

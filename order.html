@@ -168,6 +168,44 @@
             <div class="chart-box chart-tall"><canvas id="sampleChart"></canvas></div>
           </div>
         </div>
+
+        <!-- 恶意买家识别 -->
+        <div class="agg-card agg-full" style="margin-top:16px" id="blacklistSection">
+          <div class="agg-title" style="display:flex;align-items:center;gap:12px">
+            <span data-i18n="order.agg.blacklist">⚠ 可疑买家识别</span>
+            <span class="pill" style="font-size:11px" data-i18n="order.agg.blacklist_pill">取消 / 未支付 / 退款退货 · 点击查看详情</span>
+          </div>
+          <div class="filter-row" style="margin-bottom:12px;gap:12px">
+            <div class="filter-item" style="flex:0 0 auto">
+              <label data-i18n="order.blacklist.threshold">最低问题次数</label>
+              <select id="blacklistThreshold" class="select" style="width:80px">
+                <option value="2">≥ 2</option>
+                <option value="3" selected>≥ 3</option>
+                <option value="5">≥ 5</option>
+              </select>
+            </div>
+            <div class="filter-item" style="align-self:flex-end;flex:0 0 auto">
+              <button class="ghost" id="blacklistExportBtn" data-i18n="order.blacklist.export">导出黑名单</button>
+            </div>
+          </div>
+          <div class="rank-table-wrap">
+            <table class="data-table" id="blacklistTable">
+              <thead>
+                <tr>
+                  <th data-i18n="order.agg.rank">#</th>
+                  <th data-i18n="order.blacklist.col_buyer">买家用户名</th>
+                  <th data-i18n="order.blacklist.col_total">总下单数</th>
+                  <th data-i18n="order.blacklist.col_cancel">问题订单</th>
+                  <th data-i18n="order.blacklist.col_paid">正常订单</th>
+                  <th data-i18n="order.blacklist.col_rate">问题率</th>
+                  <th data-i18n="order.blacklist.col_reasons">问题类型</th>
+                </tr>
+              </thead>
+              <tbody id="blacklistBody"></tbody>
+            </table>
+          </div>
+          <div id="blacklistMeta" class="filter-meta" style="margin-top:8px"></div>
+        </div>
       </section>
 
       <section class="section">
@@ -317,6 +355,26 @@
         <div class="agg-card agg-full" style="margin-top:16px">
           <div class="agg-title" data-i18n="aff.agg.contentBreakdown">内容来源分解 · 各类型贡献</div>
           <div class="ct-breakdown" id="contentTypeBreakdown"></div>
+        </div>
+
+        <div class="agg-card agg-full" style="margin-top:16px">
+          <div class="agg-title">SKU 销量占比</div>
+          <div class="rank-table-wrap">
+            <table class="data-table" id="affSkuSalesTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th data-i18n="order.table.product">产品</th>
+                  <th>SKU</th>
+                  <th>销量</th>
+                  <th>占比</th>
+                  <th data-i18n="aff.col.orders">订单</th>
+                  <th data-i18n="aff.col.gmv">GMV</th>
+                </tr>
+              </thead>
+              <tbody id="affSkuSalesBody"></tbody>
+            </table>
+          </div>
         </div>
 
         <div class="aggregate-grid" style="margin-top:16px">
