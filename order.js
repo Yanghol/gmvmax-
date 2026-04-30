@@ -67,6 +67,104 @@ function parseCSV(text) {
 }
 
 // ════════════════════════════════════════════════════════════
+// 多语言表头标准化（印尼语 → 英文）
+// TikTok 导出可能是英文或印尼语，统一映射为英文字段名
+// ════════════════════════════════════════════════════════════
+
+const HEADER_ALIASES = {
+  // ── 达人订单 (Affiliate) ──
+  "ID Pesanan":                "Order ID",
+  "ID Produk":                 "Product ID",
+  "Produk":                    "Product Name",
+  "ID SKU":                    "SKU ID",
+  "Harga":                     "Price",
+  // "Payment Amount" 已是英文
+  "Mata Uang":                 "Currency",
+  "Kuantitas":                 "Quantity",
+  "Pengembalian barang atau dana penuh": "Fully returned or refunded",
+  "Metode Pembayaran":         "Payment method",
+  "Status Pesanan":            "Order Status",
+  "Nama pengguna kreator":     "Creator Username",
+  "Jenis Konten":              "Content Type",
+  "ID Konten":                 "Content ID",
+  // "commission model" 已是英文
+  "Persentase komisi standar": "Standard commission rate",
+  "Est. Acuan Komisi":         "Est. Commission Base",
+  "Perkiraan pembayaran komisi standar": "Est. standard commission payment",
+  "Acuan Komisi Aktual":       "Actual Commission Base",
+  "Pembayaran Komisi Aktual":  "Actual Commission Payment",
+  "Persentase komisi Iklan Toko": "Shop Ads commission rate",
+  "Perkiraan pembayaran komisi Iklan Toko": "Est. Shop Ads commission payment",
+  "Pembayaran komisi Iklan Toko aktual": "Actual Shop Ads commission payment",
+  "Perkiraan bonus yang ditanggung bersama untuk kreator": "Est. co-funded creator bonus",
+  "Bonus sebenarnya yang ditanggung bersama untuk kreator": "Actual co-funded creator bonus",
+  "Waktu Dibuat":              "Time Created",
+  "Waktu Pembayaran":          "Payment time",
+  // "Order Delivery Time" 已是英文
+  "Waktu Komisi Dibayar":      "Time Commission Paid",
+  // "Platform" 已是英文
+
+  // ── 店铺订单 (Shop) ── 预留，TikTok Shop 也可能出印尼语导出
+  "ID pesanan":                "Order ID",
+  "Status pesanan":            "Order Status",
+  "Waktu pesanan dibuat":      "Created Time",
+  "Penerima":                  "Recipient",
+  "Nama Penerima":             "Recipient",
+  "Alamat Detail":             "Detail Address",
+  "Metode pembayaran":         "Payment Method",
+  "Nama Pengguna Pembeli":     "Buyer Username",
+};
+
+// ── 字段值映射（印尼语 → 英文）──
+const VALUE_ALIASES = {
+  // Order Status（达人订单）
+  "Belum dibayar pembeli":  "Unpaid by customer",
+  "Tidak memenuhi syarat":  "Ineligible",
+  "Sudah dibayar":          "Settled",
+  "Dalam proses":           "Pending",
+  "Dibatalkan":             "Canceled",
+  "Selesai":                "Completed",
+  "Dikirim":                "Shipped",
+  // Content Type
+  "Program Trafik Eksternal": "External Traffic Program",
+  // Fully returned or refunded
+  "Ya":                     "Yes",
+  "Tidak":                  "No",
+};
+
+// 需要做值映射的字段
+const VALUE_NORM_FIELDS = new Set([
+  "Order Status", "Content Type", "Fully returned or refunded"
+]);
+
+/**
+ * 将 {headers, rows} 中的印尼语（或其他别名）表头标准化为英文
+ * rows 里每行 obj 的 key 也同步替换，同时对特定字段值做映射
+ */
+function normalizeHeaders(parsed) {
+  const { headers, rows } = parsed;
+  // 先检查是否需要映射
+  const needsMapping = headers.some(h => HEADER_ALIASES[h]);
+  if (!needsMapping) return parsed;
+
+  const newHeaders = headers.map(h => HEADER_ALIASES[h] || h);
+  const newRows = rows.map(row => {
+    const obj = {};
+    headers.forEach((h, i) => {
+      const newKey = HEADER_ALIASES[h] || h;
+      let val = row[h] ?? "";
+      // 对特定字段做值映射
+      if (VALUE_NORM_FIELDS.has(newKey) && VALUE_ALIASES[val]) {
+        val = VALUE_ALIASES[val];
+      }
+      obj[newKey] = val;
+    });
+    return obj;
+  });
+  return { headers: newHeaders, rows: newRows };
+}
+
+// ════════════════════════════════════════════════════════════
 // 模式识别
 // ════════════════════════════════════════════════════════════
 
@@ -628,6 +726,9 @@ els.fileInput.addEventListener("change", async e => {
       alert("文件为空 / 解析失败，请检查文件");
       return;
     }
+
+    // 印尼语 / 其他语种表头 → 英文标准化
+    ({ headers, rows } = normalizeHeaders({ headers, rows }));
 
     const detectedMode = detectMode(headers);
     if (!detectedMode) {
