@@ -774,7 +774,7 @@ function renderGmvVideoCards(data) {
             <div class="stat"><span>${tt("label.ctr")}</span><strong>${fmtPct(row["商品广告点击率"] || 0)}</strong></div>
           </div>
           <div class="video-actions">
-            ${url ? `<a href="${url}" target="_blank" rel="noopener">${tt("action.open")}</a>` : `<span class="page-meta">${tt("action.no_link")}</span>`}
+            ${url ? `<a class="open-btn" href="${url}" target="_blank" rel="noopener">▶ ${tt("action.open")}</a>` : `<span class="page-meta">${tt("action.no_link")}</span>`}
             ${url ? `<button class="copy-btn" data-link="${url}">${tt("action.copy")}</button>` : ``}
           </div>
         </div>
@@ -851,7 +851,7 @@ function renderRecentGmvVideos(data) {
             <div class="stat"><span>${tt("label.ctr")}</span><strong>${fmtPct(row["商品广告点击率"] || 0)}</strong></div>
           </div>
           <div class="video-actions">
-            ${url ? `<a href="${url}" target="_blank" rel="noopener">${tt("action.open")}</a>` : `<span class="page-meta">${tt("action.no_link")}</span>`}
+            ${url ? `<a class="open-btn" href="${url}" target="_blank" rel="noopener">▶ ${tt("action.open")}</a>` : `<span class="page-meta">${tt("action.no_link")}</span>`}
             ${url ? `<button class="copy-btn" data-link="${url}">${tt("action.copy")}</button>` : ``}
           </div>
         </div>
@@ -1300,13 +1300,49 @@ function renderVideoCards(data) {
   const start = (videoPage - 1) * videoPageSize;
   const end = start + videoPageSize;
   const visible = data.slice(start, end);
-  videoGrid.innerHTML = visible.map((row, idx) => `
+  videoGrid.innerHTML = visible.map((row, idx) => {
+    // 摘要格式化：截断过长文本，按 # / - / · 分段显示
+    const rawName = row.__name || "未命名视频";
+    const formatSummary = (text) => {
+      // 提取 hashtag 部分
+      const hashIdx = text.search(/#[^\s]/);
+      let mainText = hashIdx > 0 ? text.substring(0, hashIdx).trim() : text;
+      const hashtags = hashIdx > 0 ? text.substring(hashIdx).trim() : "";
+
+      // 主文本按 - / · / | 拆句，每句一行
+      const lines = mainText
+        .split(/\s*[-·|]\s*/)
+        .map(s => s.trim())
+        .filter(s => s.length > 0);
+
+      let html = "";
+      if (lines.length > 1) {
+        // 第一行作标题加粗，其余缩进列表
+        html += `<div class="vs-headline">${escapeHtml(lines[0])}</div>`;
+        html += `<ul class="vs-points">`;
+        lines.slice(1, 5).forEach(l => { html += `<li>${escapeHtml(l)}</li>`; });
+        if (lines.length > 5) html += `<li class="vs-more">+${lines.length - 5} more…</li>`;
+        html += `</ul>`;
+      } else {
+        // 单句：截断 80 字符
+        const truncated = mainText.length > 80 ? mainText.substring(0, 80) + "…" : mainText;
+        html += `<div class="vs-headline">${escapeHtml(truncated)}</div>`;
+      }
+
+      if (hashtags) {
+        const tags = hashtags.match(/#[^\s#]+/g) || [];
+        html += `<div class="vs-tags">${tags.slice(0, 6).map(t => `<span class="vs-tag">${escapeHtml(t)}</span>`).join("")}</div>`;
+      }
+      return html;
+    };
+
+    return `
     <article class="video-card" data-index="${idx}">
       <div class="thumb" data-url="${escapeHtml(row.__link)}">
         <span>${tt("thumb.loading")}</span>
       </div>
       <div class="video-body">
-        <div class="video-title">${escapeHtml(row.__name || "未命名视频")}</div>
+        <div class="video-summary">${formatSummary(rawName)}</div>
         <div class="video-meta">@${escapeHtml(row.__creator || "-")} • ${formatDay(row.__date)}</div>
         <div class="stat-row">
           <div class="stat"><span>${tt("label.gmv")}</span><strong>${fmtMoney(row.__gmv, "IDR")}</strong></div>
@@ -1315,12 +1351,12 @@ function renderVideoCards(data) {
           <div class="stat"><span>${tt("label.comments")}</span><strong>${fmtNumber(row.__comments)}</strong></div>
         </div>
         <div class="video-actions">
-          ${row.__link ? `<a href="${escapeHtml(row.__link)}" target="_blank" rel="noopener">${tt("action.open")}</a>` : `<span class="page-meta">${tt("action.no_link")}</span>`}
+          ${row.__link ? `<a class="open-btn" href="${escapeHtml(row.__link)}" target="_blank" rel="noopener">▶ ${tt("action.open")}</a>` : `<span class="page-meta">${tt("action.no_link")}</span>`}
           ${row.__link ? `<button class="copy-btn" data-link="${escapeHtml(row.__link)}">${tt("action.copy")}</button>` : ``}
         </div>
       </div>
-    </article>
-  `).join("");
+    </article>`;
+  }).join("");
 
   setupVideoThumbObserver();
 
