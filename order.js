@@ -1,6 +1,6 @@
 /* ============================================================
    CusCus · 订单分析（双模式：店铺 / 达人）
-   - 自动识别 CSV 类型
+   - 支持 CSV / Excel（xlsx/xls）· 自动识别
    - 店铺：销售 / 寄样 / 物流 / 地理
    - 达人：达人 / 内容 / 佣金
    ------------------------------------------------------------
@@ -8,7 +8,8 @@
    ============================================================ */
 
 // ════════════════════════════════════════════════════════════
-// CSV 解析（替代 XLSX hack · 处理引号 / Tab / CRLF / BOM）
+// CSV 解析（处理引号 / Tab / CRLF / BOM）
+// Excel 解析见下方 parseExcel()（使用 SheetJS）
 // ════════════════════════════════════════════════════════════
 
 function parseCSV(text) {
@@ -583,22 +584,54 @@ els.modeTabs.forEach(btn => {
 // 文件上传
 // ════════════════════════════════════════════════════════════
 
+// ── Excel → {headers, rows} 解析（SheetJS）──
+function parseExcel(arrayBuffer) {
+  const workbook = XLSX.read(arrayBuffer, { type: "array" });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+  if (!raw.length) return { headers: [], rows: [] };
+  const cleanCell = v => String(v ?? "").trim();
+  const headers = raw[0].map(cleanCell);
+  const dataRows = raw.slice(1)
+    .filter(r => r.some(c => String(c).trim().length))
+    .map(r => {
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = cleanCell(r[i]); });
+      return obj;
+    });
+  return { headers, rows: dataRows };
+}
+
+function isExcelFile(file) {
+  const ext = file.name.split(".").pop().toLowerCase();
+  return ext === "xlsx" || ext === "xls";
+}
+
 els.fileInput.addEventListener("change", async e => {
   const file = e.target.files[0];
   if (!file) return;
 
   try {
-    const text = await file.text();
-    const { headers, rows } = parseCSV(text);
+    let headers, rows;
+
+    if (isExcelFile(file)) {
+      // Excel 文件 → SheetJS 解析
+      const buf = await file.arrayBuffer();
+      ({ headers, rows } = parseExcel(buf));
+    } else {
+      // CSV / TSV 文件 → 文本解析
+      const text = await file.text();
+      ({ headers, rows } = parseCSV(text));
+    }
 
     if (!rows.length) {
-      alert("CSV 文件为空 / 解析失败，请检查文件");
+      alert("文件为空 / 解析失败，请检查文件");
       return;
     }
 
     const detectedMode = detectMode(headers);
     if (!detectedMode) {
-      alert("无法识别该 CSV 类型。请确认是店铺订单或达人订单导出文件。");
+      alert("无法识别该文件类型。请确认是店铺订单或达人订单导出文件。");
       return;
     }
 
@@ -647,8 +680,8 @@ els.fileInput.addEventListener("change", async e => {
     }
 
   } catch (err) {
-    console.error("CSV parsing error:", err);
-    alert(`CSV 解析失败: ${err.message}`);
+    console.error("文件解析错误:", err);
+    alert(`文件解析失败: ${err.message}`);
   }
 });
 

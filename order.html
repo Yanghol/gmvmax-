@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles-brand.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body data-tool="order">
   <div class="bg-orb orb-1"></div>
@@ -45,13 +46,13 @@
       <div>
         <p class="eyebrow" data-i18n="order.eyebrow">订单数据 • 筛选与聚合分析</p>
         <h1 data-i18n="order.h1">CusCus订单分析</h1>
-        <p class="sub" data-i18n="order.sub">支持店铺订单与达人订单两种模式 · 上传 CSV 自动识别 · 多维度筛选与聚合分析。</p>
+        <p class="sub" data-i18n="order.sub">支持店铺订单与达人订单两种模式 · 上传 CSV / Excel 自动识别 · 多维度筛选与聚合分析。</p>
       </div>
       <div class="upload-card">
         <div class="upload-title" data-i18n="order.upload.title">导入订单</div>
         <label class="upload-btn">
-          <span data-i18n="order.upload.button">选择 CSV 文件</span>
-          <input id="fileInput" type="file" accept=".csv" />
+          <span data-i18n="order.upload.button">选择文件</span>
+          <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" />
         </label>
         <div class="upload-hint" data-i18n="order.upload.hint">店铺订单 / 达人订单都支持，自动识别</div>
         <div id="fileMeta" class="upload-meta" data-i18n="order.upload.empty">尚未导入文件</div>
